@@ -264,7 +264,11 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
 //	CDC_Transmit_FS(Buf, (uint16_t)(*Len));	//ªÿª∑≤‚ ‘
-  USB_MotorComm_Receive(Buf, *Len);
+  /* Temporary ROS USB loopback test: return received data to the host. */
+  (void)CDC_Transmit_FS(Buf, (uint16_t)(*Len));
+
+  /* Restore this line after the loopback test. */
+  /* USB_MotorComm_Receive(Buf, *Len); */
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);

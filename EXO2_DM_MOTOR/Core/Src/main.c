@@ -218,7 +218,11 @@ int main(void)
       }
     }
 		HAL_Delay(3U);
-    (void)USB_MotorComm_SendFeedback();
+    /*
+     * Disable normal binary feedback during the temporary ROS USB loopback
+     * test. Restore the line below after the test.
+     */
+    /* (void)USB_MotorComm_SendFeedback(); */
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

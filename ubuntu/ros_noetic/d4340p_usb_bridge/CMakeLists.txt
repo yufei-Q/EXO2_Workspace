@@ -12,5 +12,6 @@ catkin_package()
 
 catkin_install_python(
   PROGRAMS scripts/d4340p_usb_node.py
+           scripts/usb_loopback_test.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

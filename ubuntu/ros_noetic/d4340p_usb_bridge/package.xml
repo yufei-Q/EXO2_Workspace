@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>d4340p_usb_bridge</name>
+  <version>0.1.0</version>
+  <description>USB CDC bridge between ROS Noetic and four DM-D4340P motors.</description>
+
+  <maintainer email="user@example.com">EXO developer</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+</package>

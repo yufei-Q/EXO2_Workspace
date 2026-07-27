@@ -222,7 +222,7 @@ int main(void)
      * Disable normal binary feedback during the temporary ROS USB loopback
      * test. Restore the line below after the test.
      */
-    /* (void)USB_MotorComm_SendFeedback(); */
+    (void)USB_MotorComm_SendFeedback();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

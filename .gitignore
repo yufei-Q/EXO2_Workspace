@@ -1,0 +1,45 @@
+# Local agent/editor state
+.agents/
+.codex/
+.vscode/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ROS 1 and ROS 2 build outputs
+**/build/
+**/devel/
+**/install/
+**/log/
+
+# Keil user settings and build outputs
+*.uvguix.*
+*.uvoptx
+*.axf
+*.bin
+*.hex
+*.map
+*.lnp
+*.dep
+*.crf
+*.o
+*.d
+*.lst
+*.iex
+*.build_log.htm
+JLinkLog.txt
+codex_build.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~

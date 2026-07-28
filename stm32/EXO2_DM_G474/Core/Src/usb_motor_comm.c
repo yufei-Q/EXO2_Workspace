@@ -260,7 +260,12 @@ uint8_t USB_MotorComm_SendFeedback(void)
   return USBD_BUSY;
 }
 
-void USB_MotorComm_TransmitComplete(void)
+void USB_MotorComm_ResetTransmitState(void)
 {
   s_tx_busy = 0U;
+}
+
+void USB_MotorComm_TransmitComplete(void)
+{
+  USB_MotorComm_ResetTransmitState();
 }

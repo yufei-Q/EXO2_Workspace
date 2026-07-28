@@ -274,7 +274,9 @@ int main(void)
   fdcan_filter.FilterType = FDCAN_FILTER_MASK;
   fdcan_filter.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
   fdcan_filter.FilterID1 = (can_test_enabled != 0U) ? 0x200U : 0U;
-  fdcan_filter.FilterID2 = 0x7FFU;
+  /* Temporary diagnosis: accept every standard ID and inspect it in
+     HAL_FDCAN_RxFifo0Callback(). Restore mask 0x7FF after the test. */
+  fdcan_filter.FilterID2 = 0U;
 
   if (HAL_FDCAN_ConfigFilter(&hfdcan1, &fdcan_filter) != HAL_OK)
   {

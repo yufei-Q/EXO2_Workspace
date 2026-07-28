@@ -8,8 +8,8 @@
 #define DM_D4340P_TORQUE_MAX             28.0f
 
 #define DM_D4310P_POSITION_MAX           12.5f
-#define DM_D4310P_VELOCITY_MAX           30.0f
-#define DM_D4310P_TORQUE_MAX             12.5f
+#define DM_D4310P_VELOCITY_MAX           50.0f
+#define DM_D4310P_TORQUE_MAX             10.0f
 
 #define DM_MOTOR_KP_MAX                  500.0f
 #define DM_MOTOR_KD_MAX                  5.0f
@@ -46,6 +46,18 @@ DM_Motor_t dm_motors[DM_MOTOR_COUNT] =
 
 static FDCAN_HandleTypeDef *s_hfdcan;
 static volatile uint8_t s_can_test_enabled = CAN_ANALYZER_LOOPBACK_TEST;
+
+/* Temporary FDCAN RX diagnostics for the debugger Watch window. */
+volatile uint32_t dm_can_rx_irq_count;
+volatile uint32_t dm_can_rx_frame_count;
+volatile uint32_t dm_can_rx_feedback_count;
+volatile uint32_t dm_can_rx_rejected_count;
+volatile uint32_t dm_can_rx_hal_error_count;
+volatile uint32_t dm_can_rx_last_identifier;
+volatile uint32_t dm_can_rx_last_data_length;
+volatile uint32_t dm_can_rx_last_fd_format;
+volatile uint32_t dm_can_rx_last_brs;
+volatile uint8_t dm_can_rx_last_data[8];
 
 static const DM_MotorLimits_t s_motor_limits[] =
 {
@@ -228,12 +240,25 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
     return;
   }
 
+  ++dm_can_rx_irq_count;
+
   while (HAL_FDCAN_GetRxFifoFillLevel(hfdcan, FDCAN_RX_FIFO0) != 0U)
   {
     if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0,
                               &header, data) != HAL_OK)
     {
+      ++dm_can_rx_hal_error_count;
       return;
+    }
+
+    ++dm_can_rx_frame_count;
+    dm_can_rx_last_identifier = header.Identifier;
+    dm_can_rx_last_data_length = header.DataLength;
+    dm_can_rx_last_fd_format = header.FDFormat;
+    dm_can_rx_last_brs = header.BitRateSwitch;
+    for (motor_id = 0U; motor_id < 8U; ++motor_id)
+    {
+      dm_can_rx_last_data[motor_id] = data[motor_id];
     }
 
     if (s_can_test_enabled != 0U)
@@ -253,12 +278,14 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
         (header.RxFrameType != FDCAN_DATA_FRAME) ||
         (header.DataLength != FDCAN_DLC_BYTES_8))
     {
+      ++dm_can_rx_rejected_count;
       continue;
     }
 
     motor_id = data[0] & 0x0FU;
     if ((motor_id == 0U) || (motor_id > DM_MOTOR_COUNT))
     {
+      ++dm_can_rx_rejected_count;
       continue;
     }
 
@@ -284,5 +311,6 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
     feedback.mos_temperature = data[6];
     feedback.rotor_temperature = data[7];
     motor->feedback = feedback;
+    ++dm_can_rx_feedback_count;
   }
 }

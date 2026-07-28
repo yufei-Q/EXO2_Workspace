@@ -27,6 +27,7 @@ typedef struct
 void USB_MotorComm_Receive(const uint8_t *data, uint32_t length);
 uint8_t USB_MotorComm_GetCommand(USB_MotorCommand_t *command);
 uint8_t USB_MotorComm_SendFeedback(void);
+void USB_MotorComm_ResetTransmitState(void);
 void USB_MotorComm_TransmitComplete(void);
 
 #endif /* USB_MOTOR_COMM_H */

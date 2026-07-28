@@ -43,3 +43,6 @@ codex_build.log
 *.bak
 *.swp
 *~
+
+# Imported reference archive (the extracted package is tracked under ubuntu/)
+/exo_bringup.zip

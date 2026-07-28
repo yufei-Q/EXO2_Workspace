@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 
+import os
+import sys
 import threading
 import time
 
-import rclpy
+import rospy
 import serial
-from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool, Float32MultiArray, UInt8MultiArray
-from std_srvs.srv import Trigger
+from std_srvs.srv import Trigger, TriggerResponse
 
-from dm_motor_usb_bridge.protocol import (
+# Catkin may execute this file through a devel-space relay script.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from protocol import (
     FLAG_CLEAR_ERROR,
     FLAG_ENABLE,
     FLAG_SET_ZERO,
@@ -21,22 +25,15 @@ from dm_motor_usb_bridge.protocol import (
 )
 
 
-class DmMotorUsbNode(Node):
+class DmMotorUsbNode:
     def __init__(self):
-        super().__init__('dm_motor_usb')
-
-        self.declare_parameter('port', '/dev/ttyACM0')
-        self.declare_parameter('rate', 500.0)
-        self.declare_parameter('kp', [0.0] * MOTOR_COUNT)
-        self.declare_parameter('kd', [0.0] * MOTOR_COUNT)
-
-        port = self.get_parameter('port').value
-        rate = float(self.get_parameter('rate').value)
+        port = rospy.get_param('~port', '/dev/ttyACM0')
+        rate = float(rospy.get_param('~rate', 500.0))
         if rate <= 0.0:
-            raise ValueError('rate must be greater than zero')
+            raise rospy.ROSInitException('rate must be greater than zero')
 
-        self.kp = self._read_gain('kp')
-        self.kd = self._read_gain('kd')
+        self.kp = self._read_gain('~kp')
+        self.kd = self._read_gain('~kd')
         self.serial = serial.Serial(
             port=port,
             baudrate=115200,
@@ -45,54 +42,55 @@ class DmMotorUsbNode(Node):
         )
 
         self.lock = threading.Lock()
-        self.stop_event = threading.Event()
         self.parser = FeedbackStreamParser()
         self.sequence = 0
         self.enabled = False
         self.one_shot_flags = 0
         self.closed = False
-        self.last_log_time = {}
 
         self.position = [0.0] * MOTOR_COUNT
         self.velocity = [0.0] * MOTOR_COUNT
         self.torque = [0.0] * MOTOR_COUNT
 
-        self.feedback_pub = self.create_publisher(
-            JointState, 'feedback', 10)
-        self.status_pub = self.create_publisher(
-            UInt8MultiArray, 'status', 10)
-        self.temperature_pub = self.create_publisher(
-            Float32MultiArray, 'temperature', 10)
+        self.feedback_pub = rospy.Publisher(
+            '/dm_motor_usb/feedback', JointState, queue_size=10)
+        self.status_pub = rospy.Publisher(
+            '/dm_motor_usb/status', UInt8MultiArray, queue_size=10)
+        self.temperature_pub = rospy.Publisher(
+            '/dm_motor_usb/temperature', Float32MultiArray, queue_size=10)
 
-        self.create_subscription(
-            JointState, 'command', self.command_callback, 1)
-        self.create_subscription(
-            Bool, 'enable', self.enable_callback, 1)
-        self.create_service(
-            Trigger, 'clear_error', self.clear_error_callback)
-        self.create_service(
-            Trigger, 'set_zero', self.set_zero_callback)
+        rospy.Subscriber(
+            '/dm_motor_usb/command', JointState,
+            self.command_callback, queue_size=1)
+        rospy.Subscriber(
+            '/dm_motor_usb/enable', Bool,
+            self.enable_callback, queue_size=1)
+        rospy.Service(
+            '/dm_motor_usb/clear_error', Trigger,
+            self.clear_error_callback)
+        rospy.Service(
+            '/dm_motor_usb/set_zero', Trigger,
+            self.set_zero_callback)
 
         self.reader = threading.Thread(target=self.read_loop, daemon=True)
         self.reader.start()
-        self.timer = self.create_timer(1.0 / rate, self.send_command)
+        self.timer = rospy.Timer(
+            rospy.Duration(1.0 / rate), self.send_command)
+        rospy.on_shutdown(self.shutdown)
+        rospy.loginfo(
+            'Opened %s; sending %d-motor commands at %.1f Hz',
+            port, MOTOR_COUNT, rate)
 
-        self.get_logger().info(
-            f'Opened {port}; sending {MOTOR_COUNT}-motor commands at {rate:.1f} Hz')
-
-    def _read_gain(self, name):
-        values = self.get_parameter(name).value
+    @staticmethod
+    def _read_gain(name):
+        values = rospy.get_param(name, [0.0] * MOTOR_COUNT)
+        if isinstance(values, (int, float)):
+            values = [float(values)] * MOTOR_COUNT
         if len(values) != MOTOR_COUNT:
-            raise ValueError(
-                f'{name} must contain exactly {MOTOR_COUNT} values')
+            raise rospy.ROSInitException(
+                '{} must contain exactly {} values'.format(
+                    name, MOTOR_COUNT))
         return [float(value) for value in values]
-
-    def _log_throttled(self, level, key, message):
-        now = time.monotonic()
-        if now - self.last_log_time.get(key, 0.0) < 1.0:
-            return
-        self.last_log_time[key] = now
-        getattr(self.get_logger(), level)(message)
 
     def command_callback(self, message):
         with self.lock:
@@ -106,28 +104,24 @@ class DmMotorUsbNode(Node):
         if (len(message.position) < MOTOR_COUNT or
                 len(message.velocity) < MOTOR_COUNT or
                 len(message.effort) < MOTOR_COUNT):
-            self._log_throttled(
-                'warning',
-                'short_command',
-                'JointState arrays should all contain 7 values; short fields keep their previous target')
+            rospy.logwarn_throttle(
+                1.0,
+                'JointState arrays should all contain 7 values; '
+                'short fields keep their previous target')
 
     def enable_callback(self, message):
         with self.lock:
             self.enabled = bool(message.data)
 
-    def clear_error_callback(self, _request, response):
+    def clear_error_callback(self, _request):
         with self.lock:
             self.one_shot_flags |= FLAG_CLEAR_ERROR
-        response.success = True
-        response.message = 'clear-error queued for all motors'
-        return response
+        return TriggerResponse(True, 'clear-error queued for all motors')
 
-    def set_zero_callback(self, _request, response):
+    def set_zero_callback(self, _request):
         with self.lock:
             self.one_shot_flags |= FLAG_SET_ZERO
-        response.success = True
-        response.message = 'set-zero queued for all motors'
-        return response
+        return TriggerResponse(True, 'set-zero queued for all motors')
 
     def _make_command_frame(self):
         with self.lock:
@@ -149,7 +143,7 @@ class DmMotorUsbNode(Node):
             self.one_shot_flags = 0
         return frame, one_shot_flags
 
-    def send_command(self):
+    def send_command(self, _event=None):
         if self.closed:
             return
 
@@ -160,18 +154,16 @@ class DmMotorUsbNode(Node):
             if one_shot_flags:
                 with self.lock:
                     self.one_shot_flags |= one_shot_flags
-            self._log_throttled(
-                'error', 'write', f'USB write failed: {error}')
+            rospy.logerr_throttle(1.0, 'USB write failed: %s', error)
 
     def read_loop(self):
-        while not self.stop_event.is_set():
+        while not rospy.is_shutdown() and not self.closed:
             try:
                 data = self.serial.read(256)
             except serial.SerialException as error:
-                if not self.stop_event.is_set():
-                    self._log_throttled(
-                        'error', 'read', f'USB read failed: {error}')
-                    self.stop_event.wait(0.1)
+                if not self.closed:
+                    rospy.logerr_throttle(1.0, 'USB read failed: %s', error)
+                    time.sleep(0.1)
                 continue
 
             if not data:
@@ -182,7 +174,7 @@ class DmMotorUsbNode(Node):
 
     def publish_feedback(self, feedback, _sequence):
         joint_state = JointState()
-        joint_state.header.stamp = self.get_clock().now().to_msg()
+        joint_state.header.stamp = rospy.Time.now()
         joint_state.name = list(JOINT_NAMES)
         joint_state.position = [item.position for item in feedback]
         joint_state.velocity = [item.velocity for item in feedback]
@@ -202,13 +194,11 @@ class DmMotorUsbNode(Node):
         self.status_pub.publish(status)
         self.temperature_pub.publish(temperature)
 
-    def shutdown_serial(self):
+    def shutdown(self):
         if self.closed:
             return
 
-        if hasattr(self, 'timer'):
-            self.timer.cancel()
-
+        self.timer.shutdown()
         with self.lock:
             self.enabled = False
             self.one_shot_flags = 0
@@ -221,32 +211,18 @@ class DmMotorUsbNode(Node):
             time.sleep(0.005)
 
         self.closed = True
-        self.stop_event.set()
         if self.reader.is_alive():
             self.reader.join(timeout=0.2)
         self.serial.close()
 
-    def destroy_node(self):
-        self.shutdown_serial()
-        return super().destroy_node()
 
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = None
+def main():
+    rospy.init_node('dm_motor_usb')
     try:
-        node = DmMotorUsbNode()
-        rclpy.spin(node)
-    except (serial.SerialException, ValueError) as error:
-        if node is not None:
-            node.get_logger().fatal(str(error))
-        else:
-            print(f'dm_motor_usb startup failed: {error}')
-    finally:
-        if node is not None:
-            node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        DmMotorUsbNode()
+        rospy.spin()
+    except (serial.SerialException, rospy.ROSInitException) as error:
+        rospy.logfatal('dm_motor_usb startup failed: %s', error)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,14 @@
+<launch>
+  <arg name="port" default="/dev/ttyACM0"/>
+  <arg name="rate" default="500.0"/>
+
+  <node pkg="exo_bringup"
+        type="node.py"
+        name="dm_motor_usb"
+        output="screen">
+    <param name="port" value="$(arg port)"/>
+    <param name="rate" value="$(arg rate)"/>
+    <rosparam param="kp">[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+    <rosparam param="kd">[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+  </node>
+</launch>

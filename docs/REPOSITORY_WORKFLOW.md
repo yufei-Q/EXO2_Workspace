@@ -65,8 +65,8 @@ git pull --rebase origin main
 
 1. `stm32/EXO2_DM_G474/Core/Src/usb_motor_comm.c`
 2. `stm32/EXO2_DM_G474/Core/Src/dm_motor.c`
-3. `ubuntu/ros_noetic/dm_motor_usb_bridge/scripts/dm_motor_usb_node.py`
-4. `ubuntu/ros_jazzy/dm_motor_usb_bridge/dm_motor_usb_bridge/protocol.py`
+3. `ubuntu/ros_noetic/exo_bringup/scripts/node.py`
+4. `ubuntu/ros_jazzy/exo_bringup/scripts/protocol.py`
 5. `stm32/EXO2_DM_G474/G474_MOTOR_PROTOCOL.md`
 
 不能只修改其中一端后直接连接电机测试。

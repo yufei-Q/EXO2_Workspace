@@ -13,6 +13,7 @@ EXO2_Workspace/
 ├── ubuntu/
 │   ├── ros_noetic/         Ubuntu 20.04 + ROS 1 Noetic
 │   └── ros_jazzy/          Ubuntu 24.04 + ROS 2 Jazzy
+├── windows/                Windows USB CDC上位机工具
 └── docs/
     └── archive/            历史测试说明
 ```
@@ -20,8 +21,8 @@ EXO2_Workspace/
 当前正式配套代码：
 
 - STM32：[stm32/EXO2_DM_G474](stm32/EXO2_DM_G474)
-- ROS 1：[ubuntu/ros_noetic/dm_motor_usb_bridge](ubuntu/ros_noetic/dm_motor_usb_bridge)
-- ROS 2：[ubuntu/ros_jazzy/dm_motor_usb_bridge](ubuntu/ros_jazzy/dm_motor_usb_bridge)
+- ROS 1：[ubuntu/ros_noetic/exo_bringup](ubuntu/ros_noetic/exo_bringup)
+- ROS 2：[ubuntu/ros_jazzy/exo_bringup](ubuntu/ros_jazzy/exo_bringup)
 - 通信协议：[stm32/EXO2_DM_G474/G474_MOTOR_PROTOCOL.md](stm32/EXO2_DM_G474/G474_MOTOR_PROTOCOL.md)
 
 三套正式代码均对应7台电机：CAN ID 1～4为D4340P，CAN ID 5～7为D4310P；USB控制帧156字节，反馈帧114字节。
@@ -65,7 +66,9 @@ Keil编译输出不会进入Git。其他电脑第一次编译时，Keil会重新
 
 ## ROS文档
 
-- ROS 1安装和运行：[ubuntu/ros_noetic/dm_motor_usb_bridge/README.md](ubuntu/ros_noetic/dm_motor_usb_bridge/README.md)
-- ROS 2安装和运行：[ubuntu/ros_jazzy/dm_motor_usb_bridge/README.md](ubuntu/ros_jazzy/dm_motor_usb_bridge/README.md)
+- ROS 1安装和运行：[ubuntu/ros_noetic/exo_bringup/README.md](ubuntu/ros_noetic/exo_bringup/README.md)
+- ROS 2安装和运行：[ubuntu/ros_jazzy/exo_bringup/README.md](ubuntu/ros_jazzy/exo_bringup/README.md)
 
-ROS 1和ROS 2是两套独立代码，不要在两个目录之间直接复制构建产物。
+ROS 1和ROS 2是两套独立代码，功能包名称统一为 `exo_bringup`，节点接口和USB协议保持一致；不要在两个目录之间复制构建产物。
+
+Windows独立测试工具见 [windows/stm32_usb_motor_tool](windows/stm32_usb_motor_tool)。

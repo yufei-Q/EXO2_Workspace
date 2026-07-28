@@ -22,6 +22,10 @@
 #define DM_MOTOR_COMMAND_DISABLE         0xFDU
 #define DM_MOTOR_COMMAND_SET_ZERO        0xFEU
 
+#define CAN_TEST_PERIODIC_TX_ID           0x100U
+#define CAN_TEST_REQUEST_ID               0x200U
+#define CAN_TEST_RESPONSE_ID              0x201U
+
 typedef struct
 {
   float position_max;
@@ -41,6 +45,7 @@ DM_Motor_t dm_motors[DM_MOTOR_COUNT] =
 };
 
 static FDCAN_HandleTypeDef *s_hfdcan;
+static volatile uint8_t s_can_test_enabled = CAN_ANALYZER_LOOPBACK_TEST;
 
 static const DM_MotorLimits_t s_motor_limits[] =
 {
@@ -189,6 +194,22 @@ HAL_StatusTypeDef DM_Motor_MitControl(const DM_Motor_t *motor,
   return DM_Motor_Send(motor->motor_id, data);
 }
 
+HAL_StatusTypeDef DM_Motor_CanAnalyzerTestSend(uint32_t counter)
+{
+  uint8_t data[8];
+
+  data[0] = 0xA5U;
+  data[1] = 0x5AU;
+  data[2] = (uint8_t)counter;
+  data[3] = (uint8_t)(counter >> 8);
+  data[4] = (uint8_t)(counter >> 16);
+  data[5] = (uint8_t)(counter >> 24);
+  data[6] = 0x47U;
+  data[7] = 0x34U;
+
+  return DM_Motor_Send(CAN_TEST_PERIODIC_TX_ID, data);
+}
+
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
                                uint32_t rx_fifo0_interrupts)
 {
@@ -213,6 +234,18 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
                               &header, data) != HAL_OK)
     {
       return;
+    }
+
+    if (s_can_test_enabled != 0U)
+    {
+      if ((header.Identifier == CAN_TEST_REQUEST_ID) &&
+          (header.IdType == FDCAN_STANDARD_ID) &&
+          (header.RxFrameType == FDCAN_DATA_FRAME) &&
+          (header.DataLength == FDCAN_DLC_BYTES_8))
+      {
+        (void)DM_Motor_Send(CAN_TEST_RESPONSE_ID, data);
+      }
+      continue;
     }
 
     if ((header.Identifier != DM_MOTOR_MASTER_ID) ||

@@ -59,5 +59,6 @@ HAL_StatusTypeDef DM_Motor_MitControl(const DM_Motor_t *motor,
                                       float kp,
                                       float kd,
                                       float torque);
+HAL_StatusTypeDef DM_Motor_CanAnalyzerTestSend(uint32_t counter);
 
 #endif /* DM_MOTOR_H */

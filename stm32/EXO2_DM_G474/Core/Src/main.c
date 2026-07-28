@@ -60,6 +60,25 @@ static volatile uint8_t motor_control_index;
 static volatile uint8_t feedback_pending;
 static volatile uint8_t usb_command_received;
 static uint32_t last_usb_command_tick;
+static uint32_t can_test_last_tick;
+static uint32_t can_test_counter;
+static volatile uint8_t can_test_enabled = CAN_ANALYZER_LOOPBACK_TEST;
+static volatile uint8_t mit_watch_test_enabled = MIT_WATCH_TEST_MODE;
+static volatile uint8_t mit_watch_active_motor_index;
+static volatile uint8_t mit_watch_timer_divider;
+
+/* Variables available directly in the Keil debugger Watch window. */
+volatile uint8_t mit_watch_motor_id = 1U;
+volatile uint8_t mit_watch_enable_request;
+volatile uint8_t mit_watch_clear_error_request;
+volatile uint8_t mit_watch_set_zero_request;
+volatile uint8_t mit_watch_motor_enabled;
+volatile uint32_t mit_watch_last_status = HAL_OK;
+volatile float mit_watch_position;
+volatile float mit_watch_velocity;
+volatile float mit_watch_kp;
+volatile float mit_watch_kd;
+volatile float mit_watch_torque;
 
 /* USER CODE END PV */
 
@@ -67,6 +86,7 @@ static uint32_t last_usb_command_tick;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 static void Motor_ProcessPendingAction(void);
+static void MIT_WatchTestProcess(void);
 
 /* USER CODE END PFP */
 
@@ -136,6 +156,83 @@ static void Motor_ProcessPendingAction(void)
   }
 }
 
+static void MIT_WatchTestProcess(void)
+{
+  HAL_StatusTypeDef status;
+  uint32_t interrupt_state;
+  uint8_t selected_index;
+
+  if ((mit_watch_motor_id == 0U) ||
+      (mit_watch_motor_id > DM_MOTOR_COUNT))
+  {
+    mit_watch_last_status = HAL_ERROR;
+    return;
+  }
+
+  selected_index = mit_watch_motor_id - 1U;
+
+  if (mit_watch_clear_error_request != 0U)
+  {
+    mit_watch_clear_error_request = 0U;
+    interrupt_state = __get_PRIMASK();
+    __disable_irq();
+    status = DM_Motor_ClearError(&dm_motors[selected_index]);
+    if (interrupt_state == 0U)
+    {
+      __enable_irq();
+    }
+    mit_watch_last_status = status;
+  }
+
+  if (mit_watch_set_zero_request != 0U)
+  {
+    mit_watch_set_zero_request = 0U;
+    interrupt_state = __get_PRIMASK();
+    __disable_irq();
+    status = DM_Motor_SetZero(&dm_motors[selected_index]);
+    if (interrupt_state == 0U)
+    {
+      __enable_irq();
+    }
+    mit_watch_last_status = status;
+  }
+
+  if ((mit_watch_enable_request != 0U) &&
+      (mit_watch_motor_enabled == 0U))
+  {
+    interrupt_state = __get_PRIMASK();
+    __disable_irq();
+    status = DM_Motor_Enable(&dm_motors[selected_index]);
+    if (status == HAL_OK)
+    {
+      mit_watch_active_motor_index = selected_index;
+      mit_watch_motor_enabled = 1U;
+    }
+    if (interrupt_state == 0U)
+    {
+      __enable_irq();
+    }
+    mit_watch_last_status = status;
+  }
+  else if ((mit_watch_enable_request == 0U) &&
+           (mit_watch_motor_enabled != 0U))
+  {
+    interrupt_state = __get_PRIMASK();
+    __disable_irq();
+    status = DM_Motor_Disable(
+      &dm_motors[mit_watch_active_motor_index]);
+    if (status == HAL_OK)
+    {
+      mit_watch_motor_enabled = 0U;
+    }
+    if (interrupt_state == 0U)
+    {
+      __enable_irq();
+    }
+    mit_watch_last_status = status;
+  }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -176,7 +273,7 @@ int main(void)
   fdcan_filter.FilterIndex = 0U;
   fdcan_filter.FilterType = FDCAN_FILTER_MASK;
   fdcan_filter.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  fdcan_filter.FilterID1 = 0U;
+  fdcan_filter.FilterID1 = (can_test_enabled != 0U) ? 0x200U : 0U;
   fdcan_filter.FilterID2 = 0x7FFU;
 
   if (HAL_FDCAN_ConfigFilter(&hfdcan1, &fdcan_filter) != HAL_OK)
@@ -220,7 +317,8 @@ int main(void)
     Error_Handler();
   }
 
-  if (HAL_TIM_Base_Start_IT(&htim6) != HAL_OK)
+  if ((can_test_enabled == 0U) &&
+      (HAL_TIM_Base_Start_IT(&htim6) != HAL_OK))
   {
     Error_Handler();
   }
@@ -232,6 +330,27 @@ int main(void)
   while (1)
   {
     uint8_t index;
+
+    if (can_test_enabled != 0U)
+    {
+      if ((HAL_GetTick() - can_test_last_tick) >= 100U)
+      {
+        if (DM_Motor_CanAnalyzerTestSend(can_test_counter) == HAL_OK)
+        {
+          ++can_test_counter;
+          can_test_last_tick = HAL_GetTick();
+        }
+      }
+      HAL_Delay(1U);
+      continue;
+    }
+
+    if (mit_watch_test_enabled != 0U)
+    {
+      MIT_WatchTestProcess();
+      HAL_Delay(1U);
+      continue;
+    }
 
     if (USB_MotorComm_GetCommand(&motor_command) != 0U)
     {
@@ -359,6 +478,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   if (htim->Instance != TIM6)
   {
+    return;
+  }
+
+  if (mit_watch_test_enabled != 0U)
+  {
+    ++mit_watch_timer_divider;
+    if (mit_watch_timer_divider >= DM_MOTOR_COUNT)
+    {
+      mit_watch_timer_divider = 0U;
+      if (mit_watch_motor_enabled != 0U)
+      {
+        (void)DM_Motor_MitControl(
+          &dm_motors[mit_watch_active_motor_index],
+          mit_watch_position,
+          mit_watch_velocity,
+          mit_watch_kp,
+          mit_watch_kd,
+          mit_watch_torque);
+      }
+    }
     return;
   }
 

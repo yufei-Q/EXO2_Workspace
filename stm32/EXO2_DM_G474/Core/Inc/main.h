@@ -60,6 +60,20 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN Private defines */
 
+/*
+ * Temporary CAN analyzer test:
+ * 1U: analyzer loopback test, motor control is suspended.
+ * 0U: normal seven-motor control.
+ */
+#define CAN_ANALYZER_LOOPBACK_TEST  0U
+
+/* 1U: control one motor using the mit_watch_* debugger variables. */
+#define MIT_WATCH_TEST_MODE         0U
+
+#if ((CAN_ANALYZER_LOOPBACK_TEST != 0U) && (MIT_WATCH_TEST_MODE != 0U))
+#error Only_one_test_mode_may_be_enabled
+#endif
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

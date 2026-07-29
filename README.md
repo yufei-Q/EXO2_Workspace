@@ -25,7 +25,7 @@ EXO2_Workspace/
 - ROS 2：[ubuntu/ros_jazzy/exo_bringup](ubuntu/ros_jazzy/exo_bringup)
 - 通信协议：[stm32/EXO2_DM_G474/G474_MOTOR_PROTOCOL.md](stm32/EXO2_DM_G474/G474_MOTOR_PROTOCOL.md)
 
-三套正式代码均对应7台电机：CAN ID 1～4为D4340P，CAN ID 5～7为D4310P；USB控制帧156字节，反馈帧114字节。
+三套正式代码均对应7台电机：CAN ID 1～4为D4340P，CAN ID 5～7为D4310P；USB控制帧156字节，反馈帧114字节。7台电机共享一个全局控制模式，支持MIT模式和速度模式。
 
 ## 分支规则
 

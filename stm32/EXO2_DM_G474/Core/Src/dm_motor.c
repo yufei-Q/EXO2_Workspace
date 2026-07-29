@@ -1,5 +1,7 @@
 #include <dm_motor.h>
 
+#include <string.h>
+
 #define DM_MOTOR_MASTER_ID              0x000U
 
 /* These values must match PMAX, VMAX and TMAX inside each motor. */
@@ -21,6 +23,14 @@
 #define DM_MOTOR_COMMAND_ENABLE          0xFCU
 #define DM_MOTOR_COMMAND_DISABLE         0xFDU
 #define DM_MOTOR_COMMAND_SET_ZERO        0xFEU
+
+#define DM_MOTOR_PARAMETER_REQUEST_ID    0x7FFU
+#define DM_MOTOR_PARAMETER_WRITE         0x55U
+#define DM_MOTOR_CONTROL_MODE_REGISTER   0x0AU
+#define DM_MOTOR_CONTROL_MODE_MIT_VALUE  1U
+#define DM_MOTOR_CONTROL_MODE_VELOCITY_VALUE  3U
+
+#define DM_MOTOR_VELOCITY_ID_OFFSET      0x200U
 
 #define CAN_TEST_PERIODIC_TX_ID           0x100U
 #define CAN_TEST_REQUEST_ID               0x200U
@@ -99,7 +109,9 @@ static float DM_Motor_UintToFloat(uint16_t value,
          minimum;
 }
 
-static HAL_StatusTypeDef DM_Motor_Send(uint16_t standard_id, uint8_t data[8])
+static HAL_StatusTypeDef DM_Motor_Send(uint16_t standard_id,
+                                       const uint8_t *data,
+                                       uint32_t data_length)
 {
   FDCAN_TxHeaderTypeDef header;
 
@@ -111,7 +123,7 @@ static HAL_StatusTypeDef DM_Motor_Send(uint16_t standard_id, uint8_t data[8])
   header.Identifier = standard_id;
   header.IdType = FDCAN_STANDARD_ID;
   header.TxFrameType = FDCAN_DATA_FRAME;
-  header.DataLength = FDCAN_DLC_BYTES_8;
+  header.DataLength = data_length;
   header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
   header.BitRateSwitch = FDCAN_BRS_ON;
   header.FDFormat = FDCAN_FD_CAN;
@@ -127,7 +139,7 @@ static HAL_StatusTypeDef DM_Motor_SendCommand(const DM_Motor_t *motor,
   uint8_t data[8] = {0xFFU, 0xFFU, 0xFFU, 0xFFU,
                      0xFFU, 0xFFU, 0xFFU, command};
 
-  return DM_Motor_Send(motor->motor_id, data);
+  return DM_Motor_Send(motor->motor_id, data, FDCAN_DLC_BYTES_8);
 }
 
 HAL_StatusTypeDef DM_Motor_Init(FDCAN_HandleTypeDef *hfdcan)
@@ -203,7 +215,48 @@ HAL_StatusTypeDef DM_Motor_MitControl(const DM_Motor_t *motor,
   data[6] = (uint8_t)((kd_raw << 4) | (torque_raw >> 8));
   data[7] = (uint8_t)torque_raw;
 
-  return DM_Motor_Send(motor->motor_id, data);
+  return DM_Motor_Send(motor->motor_id, data, FDCAN_DLC_BYTES_8);
+}
+
+HAL_StatusTypeDef DM_Motor_VelocityControl(const DM_Motor_t *motor,
+                                           float velocity)
+{
+  const DM_MotorLimits_t *limits;
+  uint8_t data[4];
+
+  limits = &s_motor_limits[motor->model];
+  velocity = DM_Motor_Clamp(velocity,
+                            -limits->velocity_max,
+                            limits->velocity_max);
+  memcpy(data, &velocity, sizeof(velocity));
+
+  return DM_Motor_Send(DM_MOTOR_VELOCITY_ID_OFFSET + motor->motor_id,
+                       data,
+                       FDCAN_DLC_BYTES_4);
+}
+
+HAL_StatusTypeDef DM_Motor_SetControlMode(const DM_Motor_t *motor,
+                                          DM_ControlMode_t mode)
+{
+  uint32_t mode_value;
+  uint8_t data[8];
+
+  mode_value = (mode == DM_CONTROL_MODE_VELOCITY) ?
+               DM_MOTOR_CONTROL_MODE_VELOCITY_VALUE :
+               DM_MOTOR_CONTROL_MODE_MIT_VALUE;
+
+  data[0] = motor->motor_id;
+  data[1] = 0U;
+  data[2] = DM_MOTOR_PARAMETER_WRITE;
+  data[3] = DM_MOTOR_CONTROL_MODE_REGISTER;
+  data[4] = (uint8_t)mode_value;
+  data[5] = (uint8_t)(mode_value >> 8);
+  data[6] = (uint8_t)(mode_value >> 16);
+  data[7] = (uint8_t)(mode_value >> 24);
+
+  return DM_Motor_Send(DM_MOTOR_PARAMETER_REQUEST_ID,
+                       data,
+                       FDCAN_DLC_BYTES_8);
 }
 
 HAL_StatusTypeDef DM_Motor_CanAnalyzerTestSend(uint32_t counter)
@@ -219,7 +272,9 @@ HAL_StatusTypeDef DM_Motor_CanAnalyzerTestSend(uint32_t counter)
   data[6] = 0x47U;
   data[7] = 0x34U;
 
-  return DM_Motor_Send(CAN_TEST_PERIODIC_TX_ID, data);
+  return DM_Motor_Send(CAN_TEST_PERIODIC_TX_ID,
+                       data,
+                       FDCAN_DLC_BYTES_8);
 }
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
@@ -229,8 +284,9 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
   DM_Motor_t *motor;
   DM_MotorFeedback_t feedback;
   const DM_MotorLimits_t *limits;
-  uint8_t data[8];
+  uint8_t data[64];
   uint8_t motor_id;
+  uint16_t parameter_motor_id;
   uint16_t position_raw;
   uint16_t velocity_raw;
   uint16_t torque_raw;
@@ -268,7 +324,9 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
           (header.RxFrameType == FDCAN_DATA_FRAME) &&
           (header.DataLength == FDCAN_DLC_BYTES_8))
       {
-        (void)DM_Motor_Send(CAN_TEST_RESPONSE_ID, data);
+        (void)DM_Motor_Send(CAN_TEST_RESPONSE_ID,
+                            data,
+                            FDCAN_DLC_BYTES_8);
       }
       continue;
     }
@@ -279,6 +337,18 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
         (header.DataLength != FDCAN_DLC_BYTES_8))
     {
       ++dm_can_rx_rejected_count;
+      continue;
+    }
+
+    parameter_motor_id = ((uint16_t)data[1] << 8) | data[0];
+    if ((parameter_motor_id >= 1U) &&
+        (parameter_motor_id <= DM_MOTOR_COUNT) &&
+        (data[2] == DM_MOTOR_PARAMETER_WRITE) &&
+        (data[3] == DM_MOTOR_CONTROL_MODE_REGISTER) &&
+        ((data[4] == DM_MOTOR_CONTROL_MODE_MIT_VALUE) ||
+         (data[4] == DM_MOTOR_CONTROL_MODE_VELOCITY_VALUE)) &&
+        (data[5] == 0U) && (data[6] == 0U) && (data[7] == 0U))
+    {
       continue;
     }
 

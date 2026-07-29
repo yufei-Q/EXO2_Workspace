@@ -32,6 +32,14 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum
+{
+  MOTOR_MODE_SWITCH_IDLE = 0U,
+  MOTOR_MODE_SWITCH_DISABLE,
+  MOTOR_MODE_SWITCH_WRITE,
+  MOTOR_MODE_SWITCH_WAIT,
+  MOTOR_MODE_SWITCH_ENABLE
+} Motor_ModeSwitchState_t;
 
 /* USER CODE END PTD */
 
@@ -41,6 +49,8 @@
 #define MOTOR_ACTION_SET_ZERO     0x02U
 #define MOTOR_ACTION_ENABLE       0x04U
 #define MOTOR_ACTION_DISABLE      0x08U
+
+#define MOTOR_MODE_SWITCH_WAIT_MS  10U
 
 /* USER CODE END PD */
 
@@ -59,6 +69,15 @@ static uint8_t motor_action_index;
 static volatile uint8_t motor_control_index;
 static volatile uint8_t feedback_pending;
 static volatile uint8_t usb_command_received;
+static volatile uint8_t motor_control_suspended;
+static volatile DM_ControlMode_t active_control_mode = DM_CONTROL_MODE_MIT;
+static DM_ControlMode_t requested_control_mode = DM_CONTROL_MODE_MIT;
+static DM_ControlMode_t mode_switch_target = DM_CONTROL_MODE_MIT;
+static Motor_ModeSwitchState_t mode_switch_state = MOTOR_MODE_SWITCH_IDLE;
+static uint8_t control_mode_initialized;
+static uint8_t mode_switch_index;
+static uint8_t mode_restore_enabled[DM_MOTOR_COUNT];
+static uint32_t mode_switch_wait_tick;
 static uint32_t last_usb_command_tick;
 static uint32_t can_test_last_tick;
 static uint32_t can_test_counter;
@@ -86,6 +105,8 @@ volatile float mit_watch_torque;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 static void Motor_ProcessPendingAction(void);
+static void Motor_StartControlModeSwitch(DM_ControlMode_t mode);
+static void Motor_ProcessControlModeSwitch(void);
 static void MIT_WatchTestProcess(void);
 
 /* USER CODE END PFP */
@@ -153,6 +174,127 @@ static void Motor_ProcessPendingAction(void)
       motor_action_index = 0U;
     }
     return;
+  }
+}
+
+static void Motor_StartControlModeSwitch(DM_ControlMode_t mode)
+{
+  uint8_t index;
+
+  motor_control_suspended = 1U;
+  mode_switch_target = mode;
+  mode_switch_index = 0U;
+  mode_switch_state = MOTOR_MODE_SWITCH_DISABLE;
+
+  for (index = 0U; index < DM_MOTOR_COUNT; ++index)
+  {
+    mode_restore_enabled[index] = motor_enabled[index];
+    motor_enabled[index] = 0U;
+    motor_action_pending[index] &=
+      (uint8_t)~(MOTOR_ACTION_ENABLE | MOTOR_ACTION_DISABLE);
+  }
+}
+
+static void Motor_ProcessControlModeSwitch(void)
+{
+  HAL_StatusTypeDef status;
+  uint32_t interrupt_state;
+  uint8_t should_enable;
+
+  if (mode_switch_state == MOTOR_MODE_SWITCH_IDLE)
+  {
+    return;
+  }
+
+  if (mode_switch_state == MOTOR_MODE_SWITCH_WAIT)
+  {
+    if ((HAL_GetTick() - mode_switch_wait_tick) <
+        MOTOR_MODE_SWITCH_WAIT_MS)
+    {
+      return;
+    }
+
+    active_control_mode = mode_switch_target;
+    control_mode_initialized = 1U;
+    mode_switch_index = 0U;
+    mode_switch_state = MOTOR_MODE_SWITCH_ENABLE;
+    return;
+  }
+
+  if (mode_switch_state == MOTOR_MODE_SWITCH_ENABLE)
+  {
+    should_enable =
+      ((mode_restore_enabled[mode_switch_index] != 0U) &&
+       (usb_command_received != 0U) &&
+       ((motor_command.motor[mode_switch_index].flags &
+         USB_MOTOR_FLAG_ENABLE) != 0U)) ? 1U : 0U;
+
+    if (should_enable == 0U)
+    {
+      status = HAL_OK;
+    }
+    else
+    {
+      interrupt_state = __get_PRIMASK();
+      __disable_irq();
+      status = DM_Motor_Enable(&dm_motors[mode_switch_index]);
+      if (interrupt_state == 0U)
+      {
+        __enable_irq();
+      }
+    }
+
+    if (status != HAL_OK)
+    {
+      return;
+    }
+
+    motor_enabled[mode_switch_index] = should_enable;
+    ++mode_switch_index;
+    if (mode_switch_index >= DM_MOTOR_COUNT)
+    {
+      mode_switch_state = MOTOR_MODE_SWITCH_IDLE;
+      motor_control_suspended = 0U;
+    }
+    return;
+  }
+
+  interrupt_state = __get_PRIMASK();
+  __disable_irq();
+  if (mode_switch_state == MOTOR_MODE_SWITCH_DISABLE)
+  {
+    status = DM_Motor_Disable(&dm_motors[mode_switch_index]);
+  }
+  else
+  {
+    status = DM_Motor_SetControlMode(&dm_motors[mode_switch_index],
+                                     mode_switch_target);
+  }
+  if (interrupt_state == 0U)
+  {
+    __enable_irq();
+  }
+
+  if (status != HAL_OK)
+  {
+    return;
+  }
+
+  ++mode_switch_index;
+  if (mode_switch_index < DM_MOTOR_COUNT)
+  {
+    return;
+  }
+
+  mode_switch_index = 0U;
+  if (mode_switch_state == MOTOR_MODE_SWITCH_DISABLE)
+  {
+    mode_switch_state = MOTOR_MODE_SWITCH_WRITE;
+  }
+  else
+  {
+    mode_switch_wait_tick = HAL_GetTick();
+    mode_switch_state = MOTOR_MODE_SWITCH_WAIT;
   }
 }
 
@@ -359,6 +501,18 @@ int main(void)
       usb_command_received = 1U;
       last_usb_command_tick = HAL_GetTick();
 
+      requested_control_mode =
+        ((motor_command.motor[0].flags &
+          USB_MOTOR_FLAG_VELOCITY_MODE) != 0U) ?
+        DM_CONTROL_MODE_VELOCITY : DM_CONTROL_MODE_MIT;
+
+      if ((mode_switch_state == MOTOR_MODE_SWITCH_IDLE) &&
+          ((control_mode_initialized == 0U) ||
+           (requested_control_mode != active_control_mode)))
+      {
+        Motor_StartControlModeSwitch(requested_control_mode);
+      }
+
       for (index = 0U; index < DM_MOTOR_COUNT; ++index)
       {
         if ((motor_command.motor[index].flags &
@@ -373,8 +527,10 @@ int main(void)
           motor_action_pending[index] |= MOTOR_ACTION_SET_ZERO;
         }
 
-        if ((motor_command.motor[index].flags &
-             USB_MOTOR_FLAG_ENABLE) != 0U)
+        if ((mode_switch_state == MOTOR_MODE_SWITCH_IDLE) &&
+            (control_mode_initialized != 0U) &&
+            ((motor_command.motor[index].flags &
+              USB_MOTOR_FLAG_ENABLE) != 0U))
         {
           if (motor_enabled[index] == 0U)
           {
@@ -383,9 +539,11 @@ int main(void)
             motor_action_pending[index] |= MOTOR_ACTION_ENABLE;
           }
         }
-        else if ((motor_enabled[index] != 0U) ||
-                 ((motor_action_pending[index] &
-                   MOTOR_ACTION_ENABLE) != 0U))
+        else if ((mode_switch_state == MOTOR_MODE_SWITCH_IDLE) &&
+                 (control_mode_initialized != 0U) &&
+                 ((motor_enabled[index] != 0U) ||
+                  ((motor_action_pending[index] &
+                    MOTOR_ACTION_ENABLE) != 0U)))
         {
           motor_enabled[index] = 0U;
           motor_action_pending[index] &= (uint8_t)~MOTOR_ACTION_ENABLE;
@@ -400,6 +558,7 @@ int main(void)
       usb_command_received = 0U;
       for (index = 0U; index < DM_MOTOR_COUNT; ++index)
       {
+        mode_restore_enabled[index] = 0U;
         if ((motor_enabled[index] != 0U) ||
             ((motor_action_pending[index] & MOTOR_ACTION_ENABLE) != 0U))
         {
@@ -410,7 +569,11 @@ int main(void)
       }
     }
 
-    Motor_ProcessPendingAction();
+    Motor_ProcessControlModeSwitch();
+    if (mode_switch_state == MOTOR_MODE_SWITCH_IDLE)
+    {
+      Motor_ProcessPendingAction();
+    }
 
     if (feedback_pending != 0U)
     {
@@ -504,15 +667,27 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
 
   index = motor_control_index;
-  if ((usb_command_received != 0U) && (motor_enabled[index] != 0U))
+  if ((usb_command_received != 0U) &&
+      (motor_enabled[index] != 0U) &&
+      (motor_control_suspended == 0U) &&
+      (control_mode_initialized != 0U))
   {
-    (void)DM_Motor_MitControl(
-      &dm_motors[index],
-      motor_command.motor[index].position,
-      motor_command.motor[index].velocity,
-      motor_command.motor[index].kp,
-      motor_command.motor[index].kd,
-      motor_command.motor[index].torque);
+    if (active_control_mode == DM_CONTROL_MODE_VELOCITY)
+    {
+      (void)DM_Motor_VelocityControl(
+        &dm_motors[index],
+        motor_command.motor[index].velocity);
+    }
+    else
+    {
+      (void)DM_Motor_MitControl(
+        &dm_motors[index],
+        motor_command.motor[index].position,
+        motor_command.motor[index].velocity,
+        motor_command.motor[index].kp,
+        motor_command.motor[index].kd,
+        motor_command.motor[index].torque);
+    }
   }
 
   ++index;

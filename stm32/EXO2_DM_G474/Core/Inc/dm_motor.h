@@ -15,6 +15,12 @@ typedef enum
 
 typedef enum
 {
+  DM_CONTROL_MODE_MIT = 0U,
+  DM_CONTROL_MODE_VELOCITY
+} DM_ControlMode_t;
+
+typedef enum
+{
   DM_MOTOR_STATUS_DISABLED = 0x0U,
   DM_MOTOR_STATUS_ENABLED = 0x1U,
   DM_MOTOR_STATUS_OUTPUT_ENCODER_ERROR = 0x3U,
@@ -59,6 +65,10 @@ HAL_StatusTypeDef DM_Motor_MitControl(const DM_Motor_t *motor,
                                       float kp,
                                       float kd,
                                       float torque);
+HAL_StatusTypeDef DM_Motor_VelocityControl(const DM_Motor_t *motor,
+                                           float velocity);
+HAL_StatusTypeDef DM_Motor_SetControlMode(const DM_Motor_t *motor,
+                                          DM_ControlMode_t mode);
 HAL_StatusTypeDef DM_Motor_CanAnalyzerTestSend(uint32_t counter);
 
 #endif /* DM_MOTOR_H */

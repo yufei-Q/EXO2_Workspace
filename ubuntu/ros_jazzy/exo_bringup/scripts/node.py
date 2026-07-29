@@ -7,14 +7,17 @@ import rclpy
 import serial
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Bool, Float32MultiArray, UInt8MultiArray
+from std_msgs.msg import Bool, Float32MultiArray, UInt8, UInt8MultiArray
 from std_srvs.srv import Trigger
 
 from scripts.protocol import (
     FLAG_CLEAR_ERROR,
     FLAG_ENABLE,
     FLAG_SET_ZERO,
+    FLAG_VELOCITY_MODE,
     JOINT_NAMES,
+    MODE_MIT,
+    MODE_VELOCITY,
     MOTOR_COUNT,
     FeedbackStreamParser,
     build_command_frame,
@@ -49,6 +52,7 @@ class DmMotorUsbNode(Node):
         self.parser = FeedbackStreamParser()
         self.sequence = 0
         self.enabled = False
+        self.control_mode = MODE_MIT
         self.one_shot_flags = 0
         self.closed = False
         self.last_log_time = {}
@@ -68,6 +72,9 @@ class DmMotorUsbNode(Node):
             JointState, '/dm_motor_usb/command', self.command_callback, 1)
         self.create_subscription(
             Bool, '/dm_motor_usb/enable', self.enable_callback, 1)
+        self.create_subscription(
+            UInt8, '/dm_motor_usb/control_mode',
+            self.control_mode_callback, 1)
         self.create_service(
             Trigger, '/dm_motor_usb/clear_error', self.clear_error_callback)
         self.create_service(
@@ -115,6 +122,27 @@ class DmMotorUsbNode(Node):
         with self.lock:
             self.enabled = bool(message.data)
 
+    def control_mode_callback(self, message):
+        mode = int(message.data)
+        if mode not in (MODE_MIT, MODE_VELOCITY):
+            self._log_throttled(
+                'warning', 'control_mode',
+                'control_mode must be 0 (MIT) or 1 (velocity)')
+            return
+
+        with self.lock:
+            if mode == self.control_mode:
+                return
+            self.control_mode = mode
+            self.enabled = False
+            self.position = [0.0] * MOTOR_COUNT
+            self.velocity = [0.0] * MOTOR_COUNT
+            self.torque = [0.0] * MOTOR_COUNT
+
+        mode_name = 'velocity' if mode == MODE_VELOCITY else 'MIT'
+        self.get_logger().info(
+            f'Control mode changed to {mode_name}; motors were disabled and targets cleared')
+
     def clear_error_callback(self, _request, response):
         with self.lock:
             self.one_shot_flags |= FLAG_CLEAR_ERROR
@@ -135,6 +163,8 @@ class DmMotorUsbNode(Node):
             flags = one_shot_flags
             if self.enabled:
                 flags |= FLAG_ENABLE
+            if self.control_mode == MODE_VELOCITY:
+                flags |= FLAG_VELOCITY_MODE
 
             frame = build_command_frame(
                 self.sequence,

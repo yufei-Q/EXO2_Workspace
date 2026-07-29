@@ -7,6 +7,7 @@
 - USB控制帧：156字节。
 - USB反馈帧：114字节。
 - 默认控制及反馈频率：500 Hz。
+- 7台电机共享同一个全局控制模式：MIT模式或速度模式。
 
 ## 文件结构
 
@@ -83,6 +84,7 @@ ros2 run exo_bringup dm_motor_usb_node --ros-args \
 |---|---|---|
 | `/dm_motor_usb/command` | `sensor_msgs/msg/JointState` | 7台电机位置、速度和前馈力矩目标 |
 | `/dm_motor_usb/enable` | `std_msgs/msg/Bool` | 同时使能或失能7台电机 |
+| `/dm_motor_usb/control_mode` | `std_msgs/msg/UInt8` | 全局控制模式：0为MIT，1为速度模式 |
 | `/dm_motor_usb/feedback` | `sensor_msgs/msg/JointState` | 位置、速度和力矩反馈 |
 | `/dm_motor_usb/status` | `std_msgs/msg/UInt8MultiArray` | 7台电机状态码 |
 | `/dm_motor_usb/temperature` | `std_msgs/msg/Float32MultiArray` | MOS和转子温度 |
@@ -90,6 +92,38 @@ ros2 run exo_bringup dm_motor_usb_node --ros-args \
 | `/dm_motor_usb/set_zero` | `std_srvs/srv/Trigger` | 设置全部电机零点 |
 
 数组下标0～6依次对应CAN ID 1～7。`JointState.name`依次为`d4340p_1`～`d4340p_4`、`d4310p_5`～`d4310p_7`。
+
+## 控制模式
+
+7台电机始终使用同一种全局控制模式，不能分别选择模式：
+
+- `0`：MIT模式，使用`position`、`velocity`、`effort`以及节点参数`kp`、`kd`。
+- `1`：速度模式，只使用`velocity`，STM32发送`0x200 + CAN ID`的速度控制帧。
+
+切换模式会自动将`enable`置为`false`，并清零已保存的位置、速度和力矩目标。模式切换完成后，必须重新发送安全目标，再单独发送使能命令。
+
+切换为速度模式：
+
+```bash
+ros2 topic pub --once /dm_motor_usb/control_mode \
+  std_msgs/msg/UInt8 '{data: 1}'
+```
+
+发送7台电机的目标速度：
+
+```bash
+ros2 topic pub --once /dm_motor_usb/command sensor_msgs/msg/JointState \
+  '{position: [0,0,0,0,0,0,0], velocity: [0.1,0.1,0.1,0.1,0.1,0.1,0.1], effort: [0,0,0,0,0,0,0]}'
+```
+
+切换回MIT模式：
+
+```bash
+ros2 topic pub --once /dm_motor_usb/control_mode \
+  std_msgs/msg/UInt8 '{data: 0}'
+```
+
+切回MIT模式后，如果`kp`不为0，重新使能前应将每台电机的目标位置设置为其当前反馈位置，避免位置突变。
 
 ## 读取反馈
 
@@ -108,7 +142,7 @@ ros2 topic hz /dm_motor_usb/feedback
 
 ## 安全控制测试
 
-首次测试必须脱离人体和外骨骼负载，并准备硬件急停。先发布完整7元素全零目标：
+首次测试必须脱离人体和外骨骼负载，并准备硬件急停。先选择控制模式并确认电机处于失能状态，再发布完整7元素安全目标：
 
 ```bash
 ros2 topic pub --once /dm_motor_usb/command sensor_msgs/msg/JointState \

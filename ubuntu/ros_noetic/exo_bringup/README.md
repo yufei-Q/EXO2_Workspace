@@ -7,6 +7,7 @@
 - USB控制帧：156字节。
 - USB反馈帧：114字节。
 - 默认控制及反馈频率：500 Hz。
+- 7台电机共享同一个全局控制模式：MIT模式或速度模式。
 
 ## 文件结构
 
@@ -85,6 +86,7 @@ rosrun exo_bringup node.py \
 |---|---|---|
 | `/dm_motor_usb/command` | `sensor_msgs/JointState` | 7台电机位置、速度和前馈力矩目标 |
 | `/dm_motor_usb/enable` | `std_msgs/Bool` | 同时使能或失能7台电机 |
+| `/dm_motor_usb/control_mode` | `std_msgs/UInt8` | 全局控制模式：0为MIT，1为速度模式 |
 | `/dm_motor_usb/feedback` | `sensor_msgs/JointState` | 位置、速度和力矩反馈 |
 | `/dm_motor_usb/status` | `std_msgs/UInt8MultiArray` | 7台电机状态码 |
 | `/dm_motor_usb/temperature` | `std_msgs/Float32MultiArray` | MOS和转子温度 |
@@ -92,6 +94,29 @@ rosrun exo_bringup node.py \
 | `/dm_motor_usb/set_zero` | `std_srvs/Trigger` | 设置全部电机零点 |
 
 数组下标0～6依次对应CAN ID 1～7。
+
+## 控制模式
+
+7台电机始终使用同一种全局控制模式：
+
+- `0`：MIT模式，使用`position`、`velocity`、`effort`以及节点参数`kp`、`kd`。
+- `1`：速度模式，只使用`velocity`。
+
+切换模式会自动失能7台电机并清零节点保存的目标值。切换后必须重新发送安全目标，再重新使能。
+
+```bash
+# 切换为速度模式
+rostopic pub -1 /dm_motor_usb/control_mode std_msgs/UInt8 'data: 1'
+
+# 发送7台电机速度目标
+rostopic pub -1 /dm_motor_usb/command sensor_msgs/JointState \
+'{position: [0,0,0,0,0,0,0], velocity: [0.1,0.1,0.1,0.1,0.1,0.1,0.1], effort: [0,0,0,0,0,0,0]}'
+
+# 切换回MIT模式
+rostopic pub -1 /dm_motor_usb/control_mode std_msgs/UInt8 'data: 0'
+```
+
+切回MIT模式后，如果`kp`不为0，重新使能前应将目标位置设置为当前反馈位置。
 
 ## 读取反馈
 
@@ -104,7 +129,7 @@ rostopic hz /dm_motor_usb/feedback
 
 ## 安全控制测试
 
-首次测试必须脱离人体和外骨骼负载，保持Kp、Kd和力矩为0，并准备硬件急停。
+首次测试必须脱离人体和外骨骼负载，先选择控制模式并保持电机失能，同时准备硬件急停。
 
 ```bash
 rostopic pub -1 /dm_motor_usb/command sensor_msgs/JointState \

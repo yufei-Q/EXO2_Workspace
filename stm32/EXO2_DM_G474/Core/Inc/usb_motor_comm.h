@@ -7,6 +7,7 @@
 #define USB_MOTOR_FLAG_ENABLE       0x01U
 #define USB_MOTOR_FLAG_CLEAR_ERROR  0x02U
 #define USB_MOTOR_FLAG_SET_ZERO     0x04U
+#define USB_MOTOR_FLAG_VELOCITY_MODE 0x10U
 
 typedef struct
 {

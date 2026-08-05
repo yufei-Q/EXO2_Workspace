@@ -1,0 +1,120 @@
+{
+  "warning": "Trajectory is in simulation joint coordinates; do not command hardware before mapping, limits, and signs are verified.",
+  "base_parameter_count": 10,
+  "base_columns_zero_based": [
+    13,
+    12,
+    11,
+    2,
+    15,
+    17,
+    18,
+    14,
+    19,
+    9
+  ],
+  "base_parameter_labels": [
+    "joint2:mz",
+    "joint2:my",
+    "joint2:mx",
+    "joint1:my",
+    "joint2:Ixy",
+    "joint2:Ixz",
+    "joint2:Iyz",
+    "joint2:Ixx",
+    "joint2:Izz",
+    "joint1:Izz"
+  ],
+  "feasible_candidates": 1224,
+  "selected_objective": 0.9961590937022886,
+  "selected_normalized_condition_number": 5.061036251033147,
+  "selected_geometric_column_strength": 64.67756640381589,
+  "position_peak_to_peak_rad": [
+    6.1086523819801535,
+    6.1086523819801535
+  ],
+  "position_minimum_rad": [
+    -3.0543261909900763,
+    -3.0543261909900767
+  ],
+  "position_maximum_rad": [
+    3.0543261909900776,
+    3.0543261909900767
+  ],
+  "initial_position_rad": [
+    0.01577649543597448,
+    -0.007466813560892238
+  ],
+  "maximum_absolute_velocity_rad_s": [
+    2.520542489732996,
+    2.834437145247552
+  ],
+  "maximum_absolute_acceleration_rad_s2": [
+    3.7112930706668146,
+    3.4014946966020436
+  ],
+  "position_offset_rad": [
+    -0.3849540558970066,
+    0.028032268707919084
+  ],
+  "start_time_shift_s": 26.07,
+  "trajectory_coefficients": [
+    [
+      [
+        -2.5697087016562756,
+        -0.24229549244554338
+      ],
+      [
+        0.8225403163150091,
+        0.06665326955296555
+      ],
+      [
+        0.028514477244554304,
+        0.37000306482934314
+      ],
+      [
+        -0.08520112867567989,
+        0.20636970939621574
+      ]
+    ],
+    [
+      [
+        -2.7263521700338007,
+        -0.2905564844513062
+      ],
+      [
+        -0.7714463052365463,
+        0.18940256042149584
+      ],
+      [
+        0.2544578746536659,
+        -0.12512323402301334
+      ],
+      [
+        -0.20924861661337332,
+        0.1907780757840124
+      ]
+    ]
+  ],
+  "validation_position_minimum_rad": [
+    -1.8093443824192497,
+    -2.0456962132964227
+  ],
+  "validation_position_maximum_rad": [
+    1.8093443824192497,
+    2.0456962132964227
+  ],
+  "validation_initial_position_rad": [
+    -0.6742023768027681,
+    0.4285119149394588
+  ],
+  "validation_maximum_absolute_velocity_rad_s": [
+    1.6748017592194233,
+    1.3160006692018003
+  ],
+  "validation_maximum_absolute_acceleration_rad_s2": [
+    1.7477715580601392,
+    1.5596231158554241
+  ],
+  "validation_start_time_shift_s": 21.330000000000002
+}

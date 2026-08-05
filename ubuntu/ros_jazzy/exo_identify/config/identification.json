@@ -1,0 +1,26 @@
+{
+  "gravity": [0.0, -9.81, 0.0],
+  "sample_time": 0.01,
+  "duration": 30.0,
+  "base_frequency": 0.1,
+  "harmonics": 4,
+  "excitation_joint_lower": [-3.141592653589793, -3.141592653589793],
+  "excitation_joint_upper": [3.141592653589793, 3.141592653589793],
+  "gravity_formula_joint_lower": [-3.141592653589793, -3.141592653589793],
+  "gravity_formula_joint_upper": [3.141592653589793, 3.141592653589793],
+  "minimum_position_peak_to_peak": [6.0, 6.0],
+  "target_position_peak_to_peak": [6.1086523819801535, 6.1086523819801535],
+  "target_position_center": [0.0, 0.0],
+  "velocity_limit": [3.0, 3.0],
+  "acceleration_limit": [8.0, 8.0],
+  "random_seed": 42,
+  "trajectory_candidates": 3000,
+  "svd_relative_tolerance": 1e-9,
+  "ridge": 1e-10,
+  "identification": {
+    "include_friction": true
+  },
+  "friction": {
+    "transition_velocity_rad_s": [0.05, 0.05]
+  }
+}

@@ -1,0 +1,21 @@
+exo_gravity_compensation:
+  ros__parameters:
+    motor_indices: [0, 6]
+    joint_directions: [1.0, 1.0]
+    motor_zero_positions: [0.0, 0.0]
+    motor_position_per_joint_radian: [1.0, 1.0]
+    joint_torque_per_motor_torque: [1.0, 1.0]
+
+    joint_velocity_limits: [6.0, 6.0]
+
+    # Gravity uses one scale; friction scales are [joint1, joint2].
+    gravity_compensation_scale: 1.0
+    friction_compensation_scale: [0.8, 0.5]
+
+    # Gravity and friction are then limited independently before being added.
+    max_gravity_torque: [3.0, 2.0]
+    # Keep this low for the first test; [0.0, 0.0] disables friction only.
+    max_friction_torque: [1.5, 1.0]
+    ramp_duration: 3.0
+    command_rate: 200.0
+    feedback_timeout: 0.1

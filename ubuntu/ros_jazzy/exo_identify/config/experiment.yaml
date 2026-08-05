@@ -1,0 +1,42 @@
+exo_trajectory_experiment:
+  ros__parameters:
+    # Zero-based indices in exo_bringup's seven-motor JointState arrays.
+    motor_indices: [0, 6]
+    joint_directions: [1.0, 1.0]
+    motor_zero_positions: [0.0, 0.0]
+
+    # Motor position change per URDF joint radian. Keep 1.0 only when feedback
+    # and commands already use output-shaft radians.
+    motor_position_per_joint_radian: [1.0, 1.0]
+    joint_torque_per_motor_torque: [1.0, 1.0]
+
+    # Replace with measured mechanical limits before enabling.
+    joint_lower_limits: [-3.141592653589793, -3.141592653589793]
+    joint_upper_limits: [3.141592653589793, 3.141592653589793]
+    joint_velocity_limits: [2.0, 2.0]
+    motor_position_limits: [3.2, 3.2]
+
+    # Use the complete approximately +/-175 degree trajectory, but execute it
+    # three times slower so both joints stay below 1.0 rad/s.
+    excitation_amplitude_scale: [1.0, 1.0]
+    excitation_time_scale: 3.0
+
+    command_rate: 500.0
+    transition_duration: 5.0
+    stop_duration: 2.0
+    hold_before_start: 0.5
+    hold_after_stop: 0.5
+    feedback_timeout: 0.1
+    # Offline identification-data processing. The slowed excitation contains
+    # frequencies up to 0.16 Hz, so a 0.5 Hz cutoff preserves the motion.
+    processing_filter_rate: 500.0
+    processing_output_rate: 100.0
+    processing_cutoff_frequency: 0.5
+    processing_filter_order: 4
+    processing_edge_trim: 2.0
+    output_directory: experiment_output
+
+    # Manual enable is the safer default. prepare publishes a hold command;
+    # enable through the GUI/topic, then call start.
+    auto_enable_on_prepare: false
+    disable_on_finish: true

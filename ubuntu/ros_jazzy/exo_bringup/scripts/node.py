@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
+import math
 import threading
 import time
 
+from rcl_interfaces.msg import SetParametersResult
 import rclpy
-import serial
 from rclpy.node import Node
-from sensor_msgs.msg import JointState
-from std_msgs.msg import Bool, Float32MultiArray, UInt8, UInt8MultiArray
-from std_srvs.srv import Trigger
-
 from scripts.protocol import (
+    build_command_frame,
+    FeedbackStreamParser,
     FLAG_CLEAR_ERROR,
     FLAG_ENABLE,
     FLAG_SET_ZERO,
@@ -19,12 +18,19 @@ from scripts.protocol import (
     MODE_MIT,
     MODE_VELOCITY,
     MOTOR_COUNT,
-    FeedbackStreamParser,
-    build_command_frame,
 )
+from sensor_msgs.msg import JointState
+import serial
+from std_msgs.msg import Bool, Float32MultiArray, UInt8, UInt8MultiArray
+from std_srvs.srv import Trigger
 
 
 class DmMotorUsbNode(Node):
+    GAIN_LIMITS = {
+        'kp': 500.0,
+        'kd': 5.0,
+    }
+
     def __init__(self):
         super().__init__('dm_motor_usb')
 
@@ -38,8 +44,11 @@ class DmMotorUsbNode(Node):
         if rate <= 0.0:
             raise ValueError('rate must be greater than zero')
 
+        self.lock = threading.Lock()
         self.kp = self._read_gain('kp')
         self.kd = self._read_gain('kd')
+        self.parameter_callback = self.add_on_set_parameters_callback(
+            self.gain_parameter_callback)
         self.serial = serial.Serial(
             port=port,
             baudrate=115200,
@@ -47,7 +56,6 @@ class DmMotorUsbNode(Node):
             write_timeout=0.02,
         )
 
-        self.lock = threading.Lock()
         self.stop_event = threading.Event()
         self.parser = FeedbackStreamParser()
         self.sequence = 0
@@ -88,11 +96,42 @@ class DmMotorUsbNode(Node):
             f'Opened {port}; sending {MOTOR_COUNT}-motor commands at {rate:.1f} Hz')
 
     def _read_gain(self, name):
-        values = self.get_parameter(name).value
+        return self._validate_gain(name, self.get_parameter(name).value)
+
+    def _validate_gain(self, name, values):
         if len(values) != MOTOR_COUNT:
             raise ValueError(
                 f'{name} must contain exactly {MOTOR_COUNT} values')
-        return [float(value) for value in values]
+        gains = [float(value) for value in values]
+        limit = self.GAIN_LIMITS[name]
+        if any(not math.isfinite(value) for value in gains):
+            raise ValueError(f'{name} values must be finite')
+        if any(value < 0.0 or value > limit for value in gains):
+            raise ValueError(
+                f'{name} values must be between 0.0 and {limit}')
+        return gains
+
+    def gain_parameter_callback(self, parameters):
+        updates = {}
+        try:
+            for parameter in parameters:
+                if parameter.name in self.GAIN_LIMITS:
+                    updates[parameter.name] = self._validate_gain(
+                        parameter.name, parameter.value)
+        except (TypeError, ValueError) as error:
+            return SetParametersResult(
+                successful=False,
+                reason=str(error),
+            )
+
+        if updates:
+            with self.lock:
+                if 'kp' in updates:
+                    self.kp = updates['kp']
+                if 'kd' in updates:
+                    self.kd = updates['kd']
+
+        return SetParametersResult(successful=True)
 
     def _log_throttled(self, level, key, message):
         now = time.monotonic()
@@ -116,7 +155,8 @@ class DmMotorUsbNode(Node):
             self._log_throttled(
                 'warning',
                 'short_command',
-                'JointState arrays should all contain 7 values; short fields keep their previous target')
+                'JointState arrays should all contain 7 values; short fields '
+                'keep their previous target')
 
     def enable_callback(self, message):
         with self.lock:
@@ -166,14 +206,30 @@ class DmMotorUsbNode(Node):
             if self.control_mode == MODE_VELOCITY:
                 flags |= FLAG_VELOCITY_MODE
 
+            if self.enabled:
+                position = self.position
+                velocity = self.velocity
+                kp = self.kp
+                kd = self.kd
+                torque = self.torque
+            else:
+                # Keep transmitting a valid command frame while disabled, but
+                # never leak a previously saved target into that frame.
+                zero = [0.0] * MOTOR_COUNT
+                position = zero
+                velocity = zero
+                kp = zero
+                kd = zero
+                torque = zero
+
             frame = build_command_frame(
                 self.sequence,
                 flags,
-                self.position,
-                self.velocity,
-                self.kp,
-                self.kd,
-                self.torque,
+                position,
+                velocity,
+                kp,
+                kd,
+                torque,
             )
             self.sequence = (self.sequence + 1) & 0xFFFF
             self.one_shot_flags = 0

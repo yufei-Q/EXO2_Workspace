@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kinematics only: inertial, visual and collision data are intentionally absent. -->
+<robot name="exo_2dof_estimator">
+  <link name="base_link"/>
+  <link name="link1"/>
+  <joint name="joint1" type="continuous">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="link1"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  <link name="link2"/>
+  <joint name="joint2" type="continuous">
+    <origin xyz="0.09 0 0.12" rpy="0 1.5708 0"/>
+    <parent link="link1"/>
+    <child link="link2"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+</robot>

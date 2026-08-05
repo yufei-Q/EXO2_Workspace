@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>exo_identify</name>
+  <version>0.1.0</version>
+  <description>Offline excitation design and dynamic parameter identification tools for the two-DOF exoskeleton.</description>
+  <maintainer email="yggroup@todo.todo">yggroup</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <!-- Pinocchio's rosdep key/package name depends on the Ubuntu/ROS repository. -->
+  <exec_depend>pinocchio</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

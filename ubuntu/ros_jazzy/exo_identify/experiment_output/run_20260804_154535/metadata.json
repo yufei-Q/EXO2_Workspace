@@ -1,0 +1,82 @@
+{
+  "trajectory_file": "/home/yggroup/exo_ws/src/exo_identify/excitation_trajectory/excitation_id.csv",
+  "motor_indices_zero_based": [
+    0,
+    6
+  ],
+  "joint_directions": [
+    1.0,
+    1.0
+  ],
+  "motor_zero_positions": [
+    0.0,
+    0.0
+  ],
+  "motor_position_per_joint_radian": [
+    1.0,
+    1.0
+  ],
+  "joint_torque_per_motor_torque": [
+    1.0,
+    1.0
+  ],
+  "samples": 22500,
+  "excitation_amplitude_scale": [
+    1.0,
+    1.0
+  ],
+  "excitation_time_scale": 3.0,
+  "actual_range_summary": {
+    "joint1": {
+      "minimum_rad": -1.4017314910888672,
+      "maximum_rad": 1.3723583221435547,
+      "peak_to_peak_rad": 2.774089813232422,
+      "minimum_deg": -80.31329844997185,
+      "maximum_deg": 78.63033983848071
+    },
+    "joint2": {
+      "minimum_rad": -1.466200828552246,
+      "maximum_rad": 1.4520864486694336,
+      "peak_to_peak_rad": 2.9182872772216797,
+      "minimum_deg": -84.0071193946281,
+      "maximum_deg": 83.1984249968986
+    }
+  },
+  "processing": {
+    "settings": {
+      "filter_rate": 500.0,
+      "output_rate": 100.0,
+      "cutoff_frequency": 0.5,
+      "filter_order": 4,
+      "edge_trim": 2.0
+    },
+    "raw_samples": 22500,
+    "raw_duration_seconds": 44.99910807609558,
+    "raw_mean_rate_hz": 499.98768779934807,
+    "raw_maximum_gap_seconds": 0.008677482604980469,
+    "processed_samples": 4101,
+    "processed_duration_seconds": 40.999999999999126,
+    "position_range_rad": [
+      [
+        -1.4181543701604258,
+        1.389397063884959
+      ],
+      [
+        -1.471823685293099,
+        1.4583251715201644
+      ]
+    ],
+    "maximum_absolute_velocity_rad_s": [
+      0.6895758618350056,
+      0.8039577814026494
+    ],
+    "maximum_absolute_acceleration_rad_s2": [
+      0.44435749274088215,
+      0.7996104984475031
+    ],
+    "maximum_absolute_torque_Nm": [
+      1.4777894381370187,
+      0.21938692758555023
+    ]
+  }
+}

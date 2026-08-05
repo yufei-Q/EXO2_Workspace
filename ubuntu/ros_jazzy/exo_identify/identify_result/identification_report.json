@@ -1,0 +1,100 @@
+{
+  "input_data": "/home/yggroup/exo_ws/src/exo_identify/experiment_output/run_20260804_201357/measured_id.csv",
+  "coordinate_requirement": "q/dq/ddq/tau must already be mapped to URDF joint1/joint2 signs, units, zero offsets, and output-shaft quantities.",
+  "friction_columns_enabled": true,
+  "friction_model": "Fv*dq + Fc*tanh(dq/vs)",
+  "identified_base_parameters": [
+    {
+      "label": "joint2:mz",
+      "value": 0.05115124145025816
+    },
+    {
+      "label": "joint2:my",
+      "value": -0.004056632959834733
+    },
+    {
+      "label": "joint2:mx",
+      "value": -0.0013255265087687206
+    },
+    {
+      "label": "joint1:my",
+      "value": 0.001244251260410884
+    },
+    {
+      "label": "joint2:Ixy",
+      "value": 0.015329307740218989
+    },
+    {
+      "label": "joint2:Ixz",
+      "value": 0.09702914465445144
+    },
+    {
+      "label": "joint2:Iyz",
+      "value": 0.08423592393679526
+    },
+    {
+      "label": "joint2:Ixx",
+      "value": 0.009603086848113392
+    },
+    {
+      "label": "joint2:Izz",
+      "value": -0.03580197436659177
+    },
+    {
+      "label": "joint1:Izz",
+      "value": -0.15830575960977175
+    }
+  ],
+  "identified_friction_parameters": [
+    {
+      "label": "joint1:Fv",
+      "value": 0.12924046701512695
+    },
+    {
+      "label": "joint2:Fv",
+      "value": 0.018812988525826073
+    },
+    {
+      "label": "joint1:Fc",
+      "value": 0.801741543572462
+    },
+    {
+      "label": "joint2:Fc",
+      "value": 0.12554681731776346
+    }
+  ],
+  "regressor_shape": [
+    17202,
+    14
+  ],
+  "regressor_condition_number": 65.3259742883893,
+  "identification_metrics": {
+    "rmse_per_joint_Nm": [
+      0.17182009331365525,
+      0.03601261452751338
+    ],
+    "max_abs_error_per_joint_Nm": [
+      0.8562442905567927,
+      0.10227748223284525
+    ],
+    "normalized_rmse_per_joint": [
+      0.05541641836293969,
+      0.11712154475727123
+    ]
+  },
+  "validation_data": "/home/yggroup/exo_ws/src/exo_identify/experiment_output/run_20260804_201610/measured_id.csv",
+  "independent_validation_metrics": {
+    "rmse_per_joint_Nm": [
+      0.2677785847634123,
+      0.035261790184447854
+    ],
+    "max_abs_error_per_joint_Nm": [
+      1.3514344186056546,
+      0.10879674611660904
+    ],
+    "normalized_rmse_per_joint": [
+      0.11162296714150932,
+      0.08690502406858198
+    ]
+  }
+}

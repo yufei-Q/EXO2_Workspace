@@ -44,5 +44,17 @@ codex_build.log
 *.swp
 *~
 
+# PowerPoint files and local presentation-generation artifacts
+*.ppt
+*.pptx
+*.pptm
+*.pot
+*.potx
+*.potm
+*.pps
+*.ppsx
+*.ppsm
+/.codex_tmp_report/
+
 # Imported reference archive (the extracted package is tracked under ubuntu/)
 /exo_bringup.zip

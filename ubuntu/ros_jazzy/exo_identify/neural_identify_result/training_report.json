@@ -1,0 +1,112 @@
+{
+  "model_type": "MLP",
+  "activation": "tanh",
+  "hidden_sizes": [
+    64,
+    64
+  ],
+  "input_definition": "[sin(q1),cos(q1),sin(q2),cos(q2),dq1,dq2,ddq1,ddq2]",
+  "output_definition": "[tau1,tau2] in URDF joint coordinates and N.m",
+  "coordinate_requirement": "q/dq/ddq/tau use URDF joint signs, SI units, zero offsets, and output-shaft quantities",
+  "training_data": [
+    "/home/yggroup/exo_ws/src/exo_identify/experiment_output/run_20260804_201357/measured_id.csv"
+  ],
+  "validation_data": "/home/yggroup/exo_ws/src/exo_identify/experiment_output/run_20260804_201610/measured_id.csv",
+  "best_epoch": 1,
+  "training_samples": 8601,
+  "validation_samples": 8601,
+  "feature_names": [
+    "sin_q1",
+    "cos_q1",
+    "sin_q2",
+    "cos_q2",
+    "dq1",
+    "dq2",
+    "ddq1",
+    "ddq2"
+  ],
+  "training_domain": {
+    "labels": [
+      "q1",
+      "q2",
+      "dq1",
+      "dq2",
+      "ddq1",
+      "ddq2"
+    ],
+    "minimum": [
+      -2.9115812560627687,
+      -3.037301750684106,
+      -0.8724469576883991,
+      -0.9556513853869842,
+      -0.5060971374951218,
+      -0.3804392505233214
+    ],
+    "maximum": [
+      3.0167553239189355,
+      3.032194390669175,
+      0.7606014333901342,
+      0.8629049813013036,
+      0.3885976224878304,
+      0.3716929650508239
+    ]
+  },
+  "best_validation_normalized_mse": 0.6258400653731676,
+  "epochs_completed": 201,
+  "training_metrics": {
+    "rmse_per_joint_Nm": [
+      0.2563019276013053,
+      0.04219073437072647
+    ],
+    "mae_per_joint_Nm": [
+      0.18721703140675242,
+      0.03114683672827365
+    ],
+    "max_abs_error_per_joint_Nm": [
+      0.7145627966864292,
+      0.12866935580776243
+    ],
+    "normalized_rmse_per_joint": [
+      0.08266399216332528,
+      0.13721425252720693
+    ],
+    "r2_per_joint": [
+      0.9249464931452471,
+      0.8509081951791724
+    ]
+  },
+  "validation_metrics": {
+    "rmse_per_joint_Nm": [
+      0.7625905076154164,
+      0.08373389750052607
+    ],
+    "mae_per_joint_Nm": [
+      0.6504876729853042,
+      0.07066139826497575
+    ],
+    "max_abs_error_per_joint_Nm": [
+      1.59034188105097,
+      0.22688211824519494
+    ],
+    "normalized_rmse_per_joint": [
+      0.31788432689339235,
+      0.20636775216389486
+    ],
+    "r2_per_joint": [
+      0.041734408345205476,
+      0.44621503036224863
+    ]
+  },
+  "deployment_gate": {
+    "maximum_normalized_rmse_per_joint": [
+      0.15,
+      0.15
+    ],
+    "minimum_r2_per_joint": [
+      0.8,
+      0.8
+    ],
+    "deployment_recommended": false,
+    "warning": "Do not use this model for real-time torque control unless deployment_recommended is true and hardware safety tests pass."
+  }
+}

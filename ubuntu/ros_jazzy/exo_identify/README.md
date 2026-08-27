@@ -2,6 +2,9 @@
 
 二自由度外骨骼的激励轨迹生成、实机数据采集、动力学参数辨识和重力项导出工具。
 
+实验性的神经网络总力矩辨识代码位于`neural_network/`，独立使用说明见
+`neural_network/README.md`。神经网络必须通过独立验证门槛后才能考虑实机部署。
+
 ## 1. 构建
 
 依赖ROS 2、NumPy、SciPy和Pinocchio。构建`exo_bringup`与`exo_identify`：

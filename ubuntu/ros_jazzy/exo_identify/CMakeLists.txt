@@ -29,6 +29,26 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(
+  PROGRAMS
+    neural_network/train_neural_dynamics.py
+    neural_network/predict_neural_dynamics.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  FILES
+    neural_network/neural_dynamics_model.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  FILES
+    neural_network/training_config.json
+    neural_network/README.md
+  DESTINATION share/${PROJECT_NAME}/neural_network
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

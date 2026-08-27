@@ -10,7 +10,7 @@ exo_gravity_compensation:
 
     # Gravity uses one scale; friction scales are [joint1, joint2].
     gravity_compensation_scale: 1.0
-    friction_compensation_scale: [0.8, 0.5]
+    friction_compensation_scale: [1.0, 0.8]
 
     # Gravity and friction are then limited independently before being added.
     max_gravity_torque: [3.0, 2.0]

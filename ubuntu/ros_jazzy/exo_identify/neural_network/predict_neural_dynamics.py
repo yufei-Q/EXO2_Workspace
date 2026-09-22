@@ -10,13 +10,35 @@ from neural_dynamics_model import load_dataset, NeuralDynamicsModel
 import numpy as np
 
 
+_local_root = Path(__file__).resolve().parents[1]
+if (_local_root / 'config').is_dir():
+    SOURCE_ROOT = _local_root
+else:
+    try:
+        from ament_index_python.packages import get_package_share_directory
+
+        SOURCE_ROOT = Path(get_package_share_directory('exo_identify'))
+    except Exception:
+        SOURCE_ROOT = _local_root
+
+
 def parse_arguments(argv=None):
     parser = argparse.ArgumentParser(
-        description='Evaluate a trained neural inverse-dynamics model')
-    parser.add_argument('--model', type=Path, required=True)
-    parser.add_argument('--data', type=Path, required=True)
-    parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--report', type=Path)
+        description='Evaluate a trained neural joint-torque model')
+    parser.add_argument(
+        '--model', type=Path,
+        default=SOURCE_ROOT / 'results/seven_dof/neural_identification/'
+        'neural_dynamics_model.npz')
+    parser.add_argument(
+        '--data', type=Path,
+        default=SOURCE_ROOT / 'results/seven_dof/simulation_data/'
+        'dynamics_validation_sim.csv')
+    parser.add_argument(
+        '--output', type=Path,
+        default=SOURCE_ROOT / 'results/seven_dof/neural_identification/prediction_check.csv')
+    parser.add_argument(
+        '--report', type=Path,
+        default=SOURCE_ROOT / 'results/seven_dof/neural_identification/prediction_check.json')
     return parser.parse_args(argv)
 
 
@@ -42,9 +64,13 @@ def main(argv=None):
         output,
         np.column_stack((t, measured, predicted, predicted - measured)),
         delimiter=',',
-        header=(
-            't,tau1_measured,tau2_measured,tau1_predicted,tau2_predicted,'
-            'error1,error2'
+        header=','.join(
+            ['t']
+            + [f'tau{joint + 1}_measured'
+               for joint in range(measured.shape[1])]
+            + [f'tau{joint + 1}_predicted'
+               for joint in range(measured.shape[1])]
+            + [f'error{joint + 1}' for joint in range(measured.shape[1])]
         ),
         comments='',
     )

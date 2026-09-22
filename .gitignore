@@ -14,6 +14,9 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
+# MuJoCo runtime log
+**/MUJOCO_LOG.TXT
+
 # ROS 1 and ROS 2 build outputs
 **/build/
 **/devel/

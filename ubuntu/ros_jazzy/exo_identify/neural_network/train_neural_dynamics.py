@@ -7,12 +7,24 @@ import json
 from pathlib import Path
 
 from neural_dynamics_model import (
-    FEATURE_NAMES,
+    feature_names,
     load_dataset,
     make_features,
     NeuralDynamicsModel,
 )
 import numpy as np
+
+
+_local_root = Path(__file__).resolve().parents[1]
+if (_local_root / 'config').is_dir():
+    SOURCE_ROOT = _local_root
+else:
+    try:
+        from ament_index_python.packages import get_package_share_directory
+
+        SOURCE_ROOT = Path(get_package_share_directory('exo_identify'))
+    except Exception:
+        SOURCE_ROOT = _local_root
 
 
 def default_config_path():
@@ -32,14 +44,21 @@ def default_config_path():
 
 def parse_arguments(argv=None):
     parser = argparse.ArgumentParser(
-        description='Train a NumPy MLP to predict total two-joint torque')
-    parser.add_argument('--id-data', type=Path, nargs='+', required=True)
-    parser.add_argument('--validation-data', type=Path, required=True)
+        description='Train a NumPy MLP to predict model-dimension joint torque')
+    parser.add_argument(
+        '--id-data', type=Path, nargs='+',
+        default=[SOURCE_ROOT / 'results/seven_dof/simulation_data/'
+                 'dynamics_id_sim.csv'])
+    parser.add_argument(
+        '--validation-data', type=Path,
+        default=SOURCE_ROOT / 'results/seven_dof/simulation_data/'
+        'dynamics_validation_sim.csv')
     parser.add_argument(
         '--config', type=Path,
         default=default_config_path())
     parser.add_argument(
-        '--output-dir', type=Path, default=Path('neural_identify_result'))
+        '--output-dir', type=Path,
+        default=SOURCE_ROOT / 'results/seven_dof/neural_identification')
     return parser.parse_args(argv)
 
 
@@ -57,10 +76,6 @@ def load_config(path):
             raise ValueError(f'{name} must be positive')
     if float(values['l2_weight_decay']) < 0.0:
         raise ValueError('l2_weight_decay cannot be negative')
-    for name in ('deployment_max_normalized_rmse', 'deployment_min_r2'):
-        threshold = np.asarray(values[name], dtype=float)
-        if threshold.shape != (2,) or not np.all(np.isfinite(threshold)):
-            raise ValueError(f'{name} must contain two finite values')
     return values
 
 
@@ -146,14 +161,18 @@ def physical_metrics(measured, predicted):
 
 def export_prediction(path, t, measured, predicted):
     error = predicted - measured
+    joint_count = measured.shape[1]
+    header = (
+        ['t']
+        + [f'tau{joint + 1}_measured' for joint in range(joint_count)]
+        + [f'tau{joint + 1}_predicted' for joint in range(joint_count)]
+        + [f'error{joint + 1}' for joint in range(joint_count)]
+    )
     np.savetxt(
         path,
         np.column_stack((t, measured, predicted, error)),
         delimiter=',',
-        header=(
-            't,tau1_measured,tau2_measured,tau1_predicted,tau2_predicted,'
-            'error1,error2'
-        ),
+        header=','.join(header),
         comments='',
     )
 
@@ -178,6 +197,15 @@ def main(argv=None):
     )
     valid_t, valid_q, valid_dq, valid_ddq, valid_tau = load_dataset(
         args.validation_data)
+    joint_count = train_q.shape[1]
+    if valid_q.shape[1] != joint_count:
+        raise ValueError('training and validation joint counts do not match')
+    names = feature_names(joint_count)
+    for name in ('deployment_max_normalized_rmse', 'deployment_min_r2'):
+        threshold = np.asarray(config[name], dtype=float)
+        if threshold.shape != (joint_count,) or not np.all(np.isfinite(threshold)):
+            raise ValueError(
+                f'{name} must contain {joint_count} finite values')
     train_features = make_features(train_q, train_dq, train_ddq)
     valid_features = make_features(valid_q, valid_dq, valid_ddq)
 
@@ -191,7 +219,7 @@ def main(argv=None):
     valid_y = (valid_tau - output_mean) / output_std
 
     rng = np.random.default_rng(int(config['random_seed']))
-    sizes = [len(FEATURE_NAMES), *config['hidden_sizes'], 2]
+    sizes = [len(names), *config['hidden_sizes'], joint_count]
     weights, biases = initialize_layers(rng, sizes)
     optimizer = Adam(
         [*weights, *biases], float(config['learning_rate']))
@@ -245,9 +273,10 @@ def main(argv=None):
         'activation': 'tanh',
         'hidden_sizes': list(config['hidden_sizes']),
         'input_definition': (
-            '[sin(q1),cos(q1),sin(q2),cos(q2),dq1,dq2,ddq1,ddq2]'
+            '[sin(qi),cos(qi) for i=1..N, dq1..dqN, ddq1..ddqN]'
         ),
-        'output_definition': '[tau1,tau2] in URDF joint coordinates and N.m',
+        'output_definition': 'tau1..tauN in URDF joint coordinates and N.m',
+        'joint_count': joint_count,
         'coordinate_requirement': (
             'q/dq/ddq/tau use URDF joint signs, SI units, zero offsets, and '
             'output-shaft quantities'
@@ -296,9 +325,13 @@ def main(argv=None):
         **metadata,
         'training_samples': int(train_t.size),
         'validation_samples': int(valid_t.size),
-        'feature_names': list(FEATURE_NAMES),
+        'feature_names': list(names),
         'training_domain': {
-            'labels': ['q1', 'q2', 'dq1', 'dq2', 'ddq1', 'ddq2'],
+            'labels': (
+                [f'q{joint + 1}' for joint in range(joint_count)]
+                + [f'dq{joint + 1}' for joint in range(joint_count)]
+                + [f'ddq{joint + 1}' for joint in range(joint_count)]
+            ),
             'minimum': domain_min.tolist(),
             'maximum': domain_max.tolist(),
         },

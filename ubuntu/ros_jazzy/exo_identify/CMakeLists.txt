@@ -10,6 +10,10 @@ install(
     scripts/export_gravity_formula.py
     scripts/gravity_compensation.py
     scripts/trajectory_experiment.py
+    scripts/mujoco_model.py
+    scripts/collect_mujoco_dynamics.py
+    scripts/validate_mujoco_compensation.py
+    scripts/mujoco_dynamics_pipeline.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -20,12 +24,12 @@ install(
 )
 
 install(
-  DIRECTORY config launch urdf
+  DIRECTORY config launch urdf results
   DESTINATION share/${PROJECT_NAME}
 )
 
 install(
-  FILES README.md
+  FILES README.md requirements-mujoco.txt
   DESTINATION share/${PROJECT_NAME}
 )
 
@@ -48,12 +52,5 @@ install(
     neural_network/README.md
   DESTINATION share/${PROJECT_NAME}/neural_network
 )
-
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
 
 ament_package()

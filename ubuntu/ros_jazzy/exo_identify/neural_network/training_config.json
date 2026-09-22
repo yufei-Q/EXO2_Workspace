@@ -8,6 +8,6 @@
   "min_delta": 1e-07,
   "print_every": 50,
   "random_seed": 42,
-  "deployment_max_normalized_rmse": [0.15, 0.15],
-  "deployment_min_r2": [0.8, 0.8]
+  "deployment_max_normalized_rmse": [0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15],
+  "deployment_min_r2": [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
 }

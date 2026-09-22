@@ -1,0 +1,129 @@
+{
+  "simulation_model": "/home/yggroup/github_repo/EXO2_Workspace/ubuntu/ros_jazzy/exo_identify/results/seven_dof/simulation_model/exo7_sim.xml",
+  "trajectory_file": "/home/yggroup/github_repo/EXO2_Workspace/ubuntu/ros_jazzy/exo_identify/results/seven_dof/excitation/excitation_id.csv",
+  "validation_trajectory_file": "/home/yggroup/github_repo/EXO2_Workspace/ubuntu/ros_jazzy/exo_identify/results/seven_dof/excitation/excitation_validation.csv",
+  "base_position": [
+    0.0,
+    0.0,
+    0.2
+  ],
+  "base_orientation_rpy": [
+    1.5708,
+    0.0,
+    0.0
+  ],
+  "joint_damping": [
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02
+  ],
+  "joint_armature": [
+    0.002,
+    0.002,
+    0.002,
+    0.002,
+    0.002,
+    0.002,
+    0.002
+  ],
+  "joint_friction_loss": [
+    0.03,
+    0.03,
+    0.03,
+    0.03,
+    0.03,
+    0.03,
+    0.03
+  ],
+  "collection_method": "MuJoCo forward dynamics: position/velocity commands are applied through a configurable virtual servo, mj_step advances the model, and qfrc_actuator is recorded as the simulated joint torque.",
+  "controller": {
+    "position_kp": [
+      20.0,
+      20.0,
+      20.0,
+      20.0,
+      20.0,
+      20.0,
+      20.0
+    ],
+    "velocity_kd": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "torque_limits_Nm": [
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0
+    ]
+  },
+  "noise": {
+    "command_torque_std_Nm": [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ],
+    "external_torque_std_Nm": [
+      0.02,
+      0.02,
+      0.02,
+      0.02,
+      0.02,
+      0.02,
+      0.02
+    ],
+    "position_std_rad": [
+      0.0005,
+      0.0005,
+      0.0005,
+      0.0005,
+      0.0005,
+      0.0005,
+      0.0005
+    ],
+    "velocity_std_rad_s": [
+      0.002,
+      0.002,
+      0.002,
+      0.002,
+      0.002,
+      0.002,
+      0.002
+    ],
+    "acceleration_std_rad_s2": [
+      0.02,
+      0.02,
+      0.02,
+      0.02,
+      0.02,
+      0.02,
+      0.02
+    ],
+    "torque_measurement_std_Nm": [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ]
+  },
+  "data_definition": "Measured q, dq, qacc and actuator torque from a MuJoCo forward simulation with configurable controller and noise."
+}

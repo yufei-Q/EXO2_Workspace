@@ -10,6 +10,7 @@ from common import (
     build_estimator_model,
     friction_regressor,
     load_config,
+    RESULTS_ROOT,
     torque_regressor,
 )
 import numpy as np
@@ -152,16 +153,24 @@ def save_trajectory(path, t, q, dq, ddq):
         path,
         np.column_stack([t, q, dq, ddq]),
         delimiter=',',
-        header='t,q1,q2,dq1,dq2,ddq1,ddq2',
+        header=','.join([
+            't',
+            *(f'q{joint + 1}' for joint in range(q.shape[1])),
+            *(f'dq{joint + 1}' for joint in range(q.shape[1])),
+            *(f'ddq{joint + 1}' for joint in range(q.shape[1])),
+        ]),
         comments='',
     )
 
 
 def parse_arguments(argv=None):
-    parser = argparse.ArgumentParser(description='Design a two-DOF Fourier excitation')
+    parser = argparse.ArgumentParser(
+        description='Design a model-dimension Fourier excitation trajectory')
     parser.add_argument('--config', type=Path)
     parser.add_argument('--urdf', type=Path)
-    parser.add_argument('--output-dir', type=Path, default=Path('identify_output'))
+    parser.add_argument(
+        '--output-dir', type=Path,
+        default=RESULTS_ROOT / 'seven_dof/excitation')
     return parser.parse_args(argv)
 
 

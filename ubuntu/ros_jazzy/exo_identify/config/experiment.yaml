@@ -1,24 +1,14 @@
 exo_trajectory_experiment:
   ros__parameters:
-    # Zero-based indices in exo_bringup's seven-motor JointState arrays.
-    motor_indices: [0, 6]
-    joint_directions: [1.0, 1.0]
-    motor_zero_positions: [0.0, 0.0]
-
-    # Motor position change per URDF joint radian. Keep 1.0 only when feedback
-    # and commands already use output-shaft radians.
-    motor_position_per_joint_radian: [1.0, 1.0]
-    joint_torque_per_motor_torque: [1.0, 1.0]
-
     # Replace with measured mechanical limits before enabling.
-    joint_lower_limits: [-3.141592653589793, -3.141592653589793]
-    joint_upper_limits: [3.141592653589793, 3.141592653589793]
-    joint_velocity_limits: [2.0, 2.0]
-    motor_position_limits: [3.2, 3.2]
+    joint_lower_limits: [-2.8, -2.8, -2.8, -2.8, -2.8, -2.8, -2.8]
+    joint_upper_limits: [2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8]
+    joint_velocity_limits: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    motor_position_limits: [12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
 
-    # Use the complete approximately +/-175 degree trajectory, but execute it
-    # three times slower so both joints stay below 1.0 rad/s.
-    excitation_amplitude_scale: [1.0, 1.0]
+    # Conservative first-hardware-test values. Increase only after verifying
+    # all seven zero positions, directions, transmissions and clearances.
+    excitation_amplitude_scale: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     excitation_time_scale: 3.0
 
     command_rate: 500.0
@@ -34,7 +24,7 @@ exo_trajectory_experiment:
     processing_cutoff_frequency: 0.5
     processing_filter_order: 4
     processing_edge_trim: 2.0
-    output_directory: experiment_output
+    output_directory: seven_dof/hardware_experiments
 
     # Manual enable is the safer default. prepare publishes a hold command;
     # enable through the GUI/topic, then call start.

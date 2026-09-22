@@ -14,12 +14,31 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'formula_file',
-            description='Absolute path to gravity_formula.json',
+            default_value=(
+                f'{identify_share}/results/seven_dof/'
+                'dynamics_identification/identified_parameters_sim.npz'),
+            description='Absolute path to gravity model .npz or formula .json',
         ),
         DeclareLaunchArgument(
             'config_file',
             default_value=(
                 f'{identify_share}/config/gravity_compensation.yaml'),
+        ),
+        DeclareLaunchArgument(
+            'hardware_mapping_file',
+            default_value=f'{identify_share}/config/hardware_mapping.yaml',
+            description='Shared motor-to-joint calibration YAML',
+        ),
+        DeclareLaunchArgument(
+            'identification_config_file',
+            default_value=(
+                f'{identify_share}/config/identification.json'),
+        ),
+        DeclareLaunchArgument(
+            'urdf_file',
+            default_value=(
+                f'{identify_share}/urdf/exo.SLDASM/urdf/'
+                '装配体.SLDASM.urdf'),
         ),
         DeclareLaunchArgument('port', default_value='/dev/ttyACM0'),
         DeclareLaunchArgument('bridge_rate', default_value='500.0'),
@@ -43,6 +62,11 @@ def generate_launch_description():
                 LaunchConfiguration('config_file'),
                 {
                     'formula_file': LaunchConfiguration('formula_file'),
+                    'hardware_mapping_file': LaunchConfiguration(
+                        'hardware_mapping_file'),
+                    'identification_config_file': LaunchConfiguration(
+                        'identification_config_file'),
+                    'urdf_file': LaunchConfiguration('urdf_file'),
                 },
             ],
         ),

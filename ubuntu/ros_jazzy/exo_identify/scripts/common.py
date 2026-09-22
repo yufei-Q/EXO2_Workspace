@@ -3,15 +3,42 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
-import pinocchio as pin
+import yaml
 from scipy.signal import butter, sosfiltfilt
+from scipy.spatial.transform import Rotation
 
 
 PACKAGE_NAME = 'exo_identify'
-SOURCE_ROOT = Path(__file__).resolve().parents[1]
-IDENTIFICATION_HEADER = 't,q1,q2,dq1,dq2,ddq1,ddq2,tau1,tau2'
+_local_root = Path(__file__).resolve().parents[1]
+if (_local_root / 'config').is_dir():
+    SOURCE_ROOT = _local_root
+else:
+    try:
+        from ament_index_python.packages import get_package_share_directory
+
+        SOURCE_ROOT = Path(get_package_share_directory(PACKAGE_NAME))
+    except Exception:
+        SOURCE_ROOT = _local_root
+RESULTS_ROOT = SOURCE_ROOT / 'results'
+HARDWARE_MAPPING_KEYS = (
+    'motor_indices',
+    'joint_directions',
+    'motor_zero_positions',
+    'motor_position_per_joint_radian',
+    'joint_torque_per_motor_torque',
+)
+
+
+def signal_header(joint_count: int) -> str:
+    """Return the canonical CSV header for an arbitrary joint count."""
+    names = [f'q{joint + 1}' for joint in range(joint_count)]
+    names += [f'dq{joint + 1}' for joint in range(joint_count)]
+    names += [f'ddq{joint + 1}' for joint in range(joint_count)]
+    names += [f'tau{joint + 1}' for joint in range(joint_count)]
+    return ','.join(['t', *names])
 
 
 @dataclass(frozen=True)
@@ -40,8 +67,10 @@ def _validate_experiment_signals(t, q, dq, tau):
     signals = [np.asarray(item, dtype=float) for item in (q, dq, tau)]
     if time.size < 10:
         raise ValueError('at least ten raw samples are required')
-    if any(item.shape != (time.size, 2) for item in signals):
-        raise ValueError('q, dq and tau must all have shape (samples, 2)')
+    if any(item.ndim != 2 or item.shape[0] != time.size for item in signals):
+        raise ValueError('q, dq and tau must have shape (samples, joints)')
+    if not signals or any(item.shape[1] != signals[0].shape[1] for item in signals):
+        raise ValueError('q, dq and tau must have the same joint count')
     if not all(np.all(np.isfinite(item)) for item in (time, *signals)):
         raise ValueError('raw data contains NaN or infinite values')
 
@@ -118,7 +147,7 @@ def process_signals(t, q, dq, tau, config=None):
         'position_range_rad': [
             [float(np.min(output_signals[0][:, joint])),
              float(np.max(output_signals[0][:, joint]))]
-            for joint in range(2)
+            for joint in range(output_signals[0].shape[1])
         ],
         'maximum_absolute_velocity_rad_s': np.max(
             np.abs(output_signals[1]), axis=0).tolist(),
@@ -135,7 +164,7 @@ def save_processed(path, values):
         path,
         values,
         delimiter=',',
-        header=IDENTIFICATION_HEADER,
+        header=signal_header((values.shape[1] - 1) // 4),
         comments='',
     )
 
@@ -151,11 +180,46 @@ def package_share() -> Path:
 
 
 def default_config_path() -> Path:
-    return package_share() / 'config' / 'identification.json'
+    source = SOURCE_ROOT / 'config' / 'identification.json'
+    installed = package_share() / 'config' / 'identification.json'
+    return source if source.exists() else installed
+
+
+def default_hardware_mapping_path() -> Path:
+    return SOURCE_ROOT / 'config' / 'hardware_mapping.yaml'
+
+
+def load_hardware_mapping(path: Path | str | None = None) -> dict:
+    mapping_path = (
+        Path(path).expanduser()
+        if path else default_hardware_mapping_path()
+    ).resolve()
+    if not mapping_path.is_file():
+        raise FileNotFoundError(
+            f'hardware mapping file does not exist: {mapping_path}')
+    with mapping_path.open('r', encoding='utf-8') as stream:
+        document = yaml.safe_load(stream) or {}
+    mapping = document.get('hardware_mapping')
+    if not isinstance(mapping, dict):
+        raise ValueError(
+            f'{mapping_path} must contain a hardware_mapping mapping')
+    missing = [key for key in HARDWARE_MAPPING_KEYS if key not in mapping]
+    if missing:
+        raise ValueError(
+            f'{mapping_path} is missing hardware mapping keys: {", ".join(missing)}')
+    return mapping
 
 
 def default_urdf_path() -> Path:
-    return package_share() / 'urdf' / 'estimator_kinematics.urdf'
+    source = (
+        SOURCE_ROOT / 'urdf' / 'exo.SLDASM' / 'urdf'
+        / '装配体.SLDASM.urdf'
+    )
+    installed = (
+        package_share() / 'urdf' / 'exo.SLDASM' / 'urdf'
+        / '装配体.SLDASM.urdf'
+    )
+    return source if source.exists() else installed
 
 
 def load_config(path: Path | str | None = None) -> dict:
@@ -166,24 +230,50 @@ def load_config(path: Path | str | None = None) -> dict:
 
 def build_estimator_model(
     config: dict, urdf_path: Path | str | None = None
-) -> tuple[pin.Model, pin.Data]:
+) -> tuple[Any, Any]:
+    try:
+        import pinocchio as pin
+    except ImportError as error:
+        raise RuntimeError(
+            'Pinocchio is required for parameter identification; '
+            'the MuJoCo collector itself does not require it.') from error
     path = Path(urdf_path) if urdf_path else default_urdf_path()
     model = pin.buildModelFromUrdf(str(path))
-    model.gravity.linear = np.asarray(config['gravity'], dtype=float)
-    if model.nv != 2:
-        raise RuntimeError(f'This package expects two joints, but model.nv={model.nv}')
+    gravity_world = np.asarray(config['gravity'], dtype=float).reshape(-1)
+    if gravity_world.shape != (3,) or not np.all(np.isfinite(gravity_world)):
+        raise ValueError('gravity must contain three finite values')
+    simulation = config.get('simulation', {})
+    base_orientation_rpy = np.asarray(
+        simulation.get('base_orientation_rpy', (0.0, 0.0, 0.0)),
+        dtype=float,
+    ).reshape(-1)
+    if (base_orientation_rpy.shape != (3,)
+            or not np.all(np.isfinite(base_orientation_rpy))):
+        raise ValueError(
+            'simulation.base_orientation_rpy must contain three finite values')
+    # MuJoCo applies gravity in the world frame after rotating the URDF root
+    # by base_orientation_rpy.  Pinocchio's fixed-base URDF model keeps the
+    # root frame unrotated, so express the same world gravity in that root
+    # frame before building all regressors used for identification.
+    base_rotation = Rotation.from_euler(
+        'xyz', base_orientation_rpy).as_matrix()
+    model.gravity.linear = base_rotation.T @ gravity_world
+    if model.nv < 1:
+        raise RuntimeError(f'URDF contains no actuated joints (model.nv={model.nv})')
     return model, model.createData()
 
 
 def configuration_from_joint_angles(
-    model: pin.Model, joint_angles: np.ndarray
+    model: Any, joint_angles: np.ndarray
 ) -> np.ndarray:
     """
-    Convert two physical angles to Pinocchio's joint configuration.
+    Convert physical angles to Pinocchio's joint configuration.
 
     Continuous URDF joints use [cos(q), sin(q)] internally. CSV files and the
-    future hardware adapter remain in two unwrapped physical joint angles.
+    hardware adapter remain in unwrapped physical joint angles.
     """
+    import pinocchio as pin
+
     angles = np.asarray(joint_angles, dtype=float).reshape(-1)
     if angles.size != model.nv:
         raise ValueError(f'Expected {model.nv} joint angles, got {angles.size}')
@@ -193,6 +283,8 @@ def configuration_from_joint_angles(
 
 
 def torque_regressor(model, data, q, dq, ddq) -> np.ndarray:
+    import pinocchio as pin
+
     configuration = configuration_from_joint_angles(model, q)
     return np.asarray(
         pin.computeJointTorqueRegressor(
@@ -208,23 +300,33 @@ def torque_regressor(model, data, q, dq, ddq) -> np.ndarray:
 
 def friction_regressor(dq: np.ndarray, config: dict) -> np.ndarray:
     velocity = np.asarray(dq, dtype=float).reshape(-1)
-    if velocity.size != 2:
-        raise ValueError(f'Expected two joint velocities, got {velocity.size}')
+    joint_count = velocity.size
+    if joint_count < 1:
+        raise ValueError('At least one joint velocity is required')
     scale = np.asarray(
         config['friction']['transition_velocity_rad_s'], dtype=float
     )
-    if scale.shape != (2,) or np.any(scale <= 0.0):
-        raise ValueError('friction.transition_velocity_rad_s must be two positive values')
-    matrix = np.zeros((2, 4), dtype=float)
-    matrix[0, 0] = velocity[0]
-    matrix[1, 1] = velocity[1]
-    matrix[0, 2] = np.tanh(velocity[0] / scale[0])
-    matrix[1, 3] = np.tanh(velocity[1] / scale[1])
+    if scale.shape != (joint_count,) or np.any(scale <= 0.0):
+        raise ValueError(
+            'friction.transition_velocity_rad_s must contain one positive value per joint'
+        )
+    matrix = np.zeros((joint_count, 2 * joint_count), dtype=float)
+    indices = np.arange(joint_count)
+    matrix[indices, indices] = velocity
+    matrix[indices, joint_count + indices] = np.tanh(velocity / scale)
     return matrix
 
 
 def friction_parameter_labels() -> list[str]:
-    return ['joint1:Fv', 'joint2:Fv', 'joint1:Fc', 'joint2:Fc']
+    # Kept for compatibility with callers that do not have a model handy.
+    return []
+
+
+def friction_parameter_labels_for_count(joint_count: int) -> list[str]:
+    return (
+        [f'joint{joint + 1}:Fv' for joint in range(joint_count)]
+        + [f'joint{joint + 1}:Fc' for joint in range(joint_count)]
+    )
 
 
 def load_base_set(path: Path | str) -> tuple[np.ndarray, list[str]]:

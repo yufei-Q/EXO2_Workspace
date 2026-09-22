@@ -1,0 +1,12 @@
+# Single source of truth for the physical motor-to-joint calibration.
+# Update this file after measuring the real hardware; both trajectory
+# experiments and gravity compensation use the same values.
+hardware_mapping:
+  # Zero-based indices in exo_bringup's seven-motor JointState arrays.
+  motor_indices: [0, 1, 2, 3, 4, 5, 6]
+  joint_directions: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  motor_zero_positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+  # Motor position change per URDF joint radian.
+  motor_position_per_joint_radian: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  joint_torque_per_motor_torque: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]

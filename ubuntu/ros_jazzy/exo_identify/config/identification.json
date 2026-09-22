@@ -1,26 +1,47 @@
 {
-  "gravity": [0.0, -9.81, 0.0],
-  "sample_time": 0.01,
-  "duration": 30.0,
-  "base_frequency": 0.1,
+  "gravity": [0.0, 0.0, -9.81],
+  "sample_time": 0.02,
+  "duration": 40.0,
+  "base_frequency": 0.08,
   "harmonics": 4,
-  "excitation_joint_lower": [-3.141592653589793, -3.141592653589793],
-  "excitation_joint_upper": [3.141592653589793, 3.141592653589793],
-  "gravity_formula_joint_lower": [-3.141592653589793, -3.141592653589793],
-  "gravity_formula_joint_upper": [3.141592653589793, 3.141592653589793],
-  "minimum_position_peak_to_peak": [6.0, 6.0],
-  "target_position_peak_to_peak": [6.1086523819801535, 6.1086523819801535],
-  "target_position_center": [0.0, 0.0],
-  "velocity_limit": [3.0, 3.0],
-  "acceleration_limit": [8.0, 8.0],
+  "excitation_joint_lower": [-2.8, -2.8, -2.8, -2.8, -2.8, -2.8, -2.8],
+  "excitation_joint_upper": [2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8],
+  "gravity_formula_joint_lower": [-2.8, -2.8, -2.8, -2.8, -2.8, -2.8, -2.8],
+  "gravity_formula_joint_upper": [2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8],
+  "minimum_position_peak_to_peak": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0],
+  "target_position_peak_to_peak": [5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2],
+  "target_position_center": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+  "velocity_limit": [2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5],
+  "acceleration_limit": [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0],
   "random_seed": 42,
-  "trajectory_candidates": 3000,
+  "trajectory_candidates": 600,
   "svd_relative_tolerance": 1e-9,
   "ridge": 1e-10,
   "identification": {
     "include_friction": true
   },
+  "simulation": {
+    "timestep": 0.002,
+    "base_position": [0.0, 0.0, 0.2],
+    "base_orientation_rpy": [1.5708, 0.0, 0.0],
+    "joint_damping": [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02],
+    "joint_armature": [0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002],
+    "joint_friction_loss": [0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03],
+    "controller": {
+      "position_kp": [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0],
+      "velocity_kd": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+      "torque_limits": [8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
+    },
+    "noise": {
+      "command_torque_std": [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
+      "external_torque_std": [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02],
+      "position_std": [0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005],
+      "velocity_std": [0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002],
+      "acceleration_std": [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02],
+      "torque_measurement_std": [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+    }
+  },
   "friction": {
-    "transition_velocity_rad_s": [0.05, 0.05]
+    "transition_velocity_rad_s": [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
   }
 }

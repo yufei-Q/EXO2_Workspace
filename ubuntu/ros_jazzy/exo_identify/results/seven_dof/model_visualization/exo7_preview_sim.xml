@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="exo7">
+  <compiler angle="radian" autolimits="true" balanceinertia="true" inertiafromgeom="false" />
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" />
+  <visual>
+    <global offwidth="960" offheight="720" />
+  </visual>
+  <default>
+    <joint damping="0" armature="0" />
+    <geom contype="0" conaffinity="0" group="1" />
+  </default>
+  <asset>
+    <mesh name="base_link_mesh_1" file="exo7_preview_sim_assets/base_link.STL" />
+    <material name="base_link_material" rgba="0.76 0.78 0.80 1" specular="0.25" shininess="0.35" />
+    <mesh name="link1_mesh_1" file="exo7_preview_sim_assets/link1.STL" />
+    <material name="link1_material" rgba="0.18 0.42 0.62 1" specular="0.25" shininess="0.35" />
+    <mesh name="link2_mesh_1" file="exo7_preview_sim_assets/link2.STL" />
+    <material name="link2_material" rgba="0.82 0.25 0.22 1" specular="0.25" shininess="0.35" />
+    <mesh name="link3_mesh_1" file="exo7_preview_sim_assets/link3.STL" />
+    <material name="link3_material" rgba="0.32 0.56 0.39 1" specular="0.25" shininess="0.35" />
+    <mesh name="link4_mesh_1" file="exo7_preview_sim_assets/link4_part1.stl" />
+    <mesh name="link4_mesh_2" file="exo7_preview_sim_assets/link4_part2.stl" />
+    <material name="link4_material" rgba="0.76 0.78 0.80 1" specular="0.25" shininess="0.35" />
+    <mesh name="link5_mesh_1" file="exo7_preview_sim_assets/link5_part1.stl" />
+    <mesh name="link5_mesh_2" file="exo7_preview_sim_assets/link5_part2.stl" />
+    <material name="link5_material" rgba="0.18 0.42 0.62 1" specular="0.25" shininess="0.35" />
+    <mesh name="link6_mesh_1" file="exo7_preview_sim_assets/link6_part1.stl" />
+    <mesh name="link6_mesh_2" file="exo7_preview_sim_assets/link6_part2.stl" />
+    <material name="link6_material" rgba="0.82 0.25 0.22 1" specular="0.25" shininess="0.35" />
+    <mesh name="link7_mesh_1" file="exo7_preview_sim_assets/link7.STL" />
+    <material name="link7_material" rgba="0.32 0.56 0.39 1" specular="0.25" shininess="0.35" />
+  </asset>
+  <worldbody>
+    <light name="key" pos="0 -2 3" dir="0 0.5 -1" diffuse="0.8 0.8 0.8" />
+    <light name="fill" pos="1 2 2" dir="-0.4 -0.5 -1" diffuse="0.45 0.45 0.45" />
+    <geom name="floor" type="plane" size="3 3 0.1" pos="0 0 -0.55" rgba="0.18 0.20 0.22 1" contype="0" conaffinity="0" group="2" />
+    <body name="base_link" pos="0 0 0.2" quat="0.707105482511 0.707108079859 0 0">
+      <inertial pos="-2.76522939481e-05 -0.00626400392937 -0.0205338832218" mass="0.158842788893151" fullinertia="5.54652310554e-05 7.62543275606e-05 9.62565645866e-05 2.59684158939e-08 -1.91637415591e-09 -4.14314945804e-06" />
+      <geom name="base_link_visual_1" type="mesh" mesh="base_link_mesh_1" material="base_link_material" pos="0 0 0" quat="1 0 0 0" />
+      <site name="base_link_frame" type="sphere" size="0.008" rgba="0.95 0.82 0.18 1" group="3" />
+      <body name="link1" pos="0 0 0" quat="1 0 0 0">
+        <joint name="joint1" type="hinge" axis="0 0 -1" limited="false" damping="0.02" armature="0.002" frictionloss="0.03" />
+        <inertial pos="0.192543499762 -9.19221949391e-06 0.0960725879689" mass="0.223146328060751" fullinertia="9.5841749296e-05 0.000155145529079 0.000137025472039 9.10803390733e-09 -1.00270837592e-05 1.93841799728e-08" />
+        <geom name="link1_visual_1" type="mesh" mesh="link1_mesh_1" material="link1_material" pos="0 0 0" quat="1 0 0 0" />
+        <site name="link1_frame" type="sphere" size="0.008" rgba="0.95 0.82 0.18 1" group="3" />
+        <body name="link2" pos="0.217 0 0.143" quat="0.707105482511 0 -0.707108079859 0">
+          <joint name="joint2" type="hinge" axis="0 0 -1" limited="false" damping="0.02" armature="0.002" frictionloss="0.03" />
+          <inertial pos="0.0863857199363 -1.1738382372e-05 0.0898358709478" mass="0.1747501382594" fullinertia="6.93110438363e-05 7.08196541227e-05 6.87606880985e-05 2.01471665279e-08 -2.11345670842e-05 7.26637652826e-09" />
+          <geom name="link2_visual_1" type="mesh" mesh="link2_mesh_1" material="link2_material" pos="0 0 0" quat="1 0 0 0" />
+          <site name="link2_frame" type="sphere" size="0.008" rgba="0.95 0.82 0.18 1" group="3" />
+          <body name="link3" pos="0.093408 0 0.1236" quat="0.923879181092 0 -0.382684280765 0">
+            <joint name="joint3" type="hinge" axis="0 0 -1" limited="false" damping="0.02" armature="0.002" frictionloss="0.03" />
+            <inertial pos="0.217004642679 2.83916312927e-05 0.00764645069754" mass="0.195695773240529" fullinertia="5.22557069199e-05 0.000218097395443 0.000238890923335 -4.53524188604e-08 -2.08112687785e-06 -5.79147294733e-09" />
+            <geom name="link3_visual_1" type="mesh" mesh="link3_mesh_1" material="link3_material" pos="0 0 0" quat="1 0 0 0" />
+            <site name="link3_frame" type="sphere" size="0.008" rgba="0.95 0.82 0.18 1" group="3" />
+            <body name="link4" pos="0.28 0 0.02525" quat="1 0 0 0">
+              <joint name="joint4" type="hinge" axis="0 0 -1" limited="false" damping="0.02" armature="0.002" frictionloss="0.03" />
+              <inertial pos="0.12147524619 3.04089991704e-05 -0.0342250620338" mass="0.166986707079527" fullinertia="5.10861078173e-05 7.72686179756e-05 9.01471064405e-05 6.9779713404e-08 1.65877290301e-05 -4.61760199067e-08" />
+              <geom name="link4_visual_1" type="mesh" mesh="link4_mesh_1" material="link4_material" pos="0 0 0" quat="1 0 0 0" />
+              <geom name="link4_visual_2" type="mesh" mesh="link4_mesh_2" material="link4_material" pos="0 0 0" quat="1 0 0 0" />
+              <site name="link4_frame" type="sphere" size="0.008" rgba="0.95 0.82 0.18 1" group="3" />
+              <body name="link5" pos="0.15754 0 -0.030804" quat="0.96592566784 0 0.258819636443 0">
+                <joint name="joint5" type="hinge" axis="0 0 -1" limited="false" damping="0.02" armature="0.002" frictionloss="0.03" />
+                <inertial pos="0.10226757507 3.09456472451e-05 0.0677487506851" mass="0.164079361843354" fullinertia="6.73397754765e-05 6.64626574943e-05 6.24705968424e-05 4.61750759704e-08 -1.72031156638e-05 6.97786745632e-08" />
+                <geom name="link5_visual_1" type="mesh" mesh="link5_mesh_1" material="link5_material" pos="0 0 0" quat="1 0 0 0" />
+                <geom name="link5_visual_2" type="mesh" mesh="link5_mesh_2" material="link5_material" pos="0 0 0" quat="1 0 0 0" />
+                <site name="link5_frame" type="sphere" size="0.008" rgba="0.95 0.82 0.18 1" group="3" />
+                <body name="link6" pos="0.10546 0 0.094317" quat="0.866024791583 0 -0.500001060363 0">
+                  <joint name="joint6" type="hinge" axis="0 0 -1" limited="false" damping="0.02" armature="0.002" frictionloss="0.03" />
+                  <inertial pos="0.102176943657 2.81709402693e-05 0.0902037061729" mass="0.180239914092338" fullinertia="8.60256737789e-05 8.11053180406e-05 6.13417260945e-05 5.09959760074e-09 -9.85407862845e-06 8.35176163929e-08" />
+                  <geom name="link6_visual_1" type="mesh" mesh="link6_mesh_1" material="link6_material" pos="0 0 0" quat="1 0 0 0" />
+                  <geom name="link6_visual_2" type="mesh" mesh="link6_mesh_2" material="link6_material" pos="0 0 0" quat="1 0 0 0" />
+                  <site name="link6_frame" type="sphere" size="0.008" rgba="0.95 0.82 0.18 1" group="3" />
+                  <body name="link7" pos="0.102 0 0.12168" quat="0.707105482511 0 -0.707108079859 0">
+                    <joint name="joint7" type="hinge" axis="0 0 -1" limited="false" damping="0.02" armature="0.002" frictionloss="0.03" />
+                    <inertial pos="0.0556373148324 1.42355745247e-16 0.0443709660148" mass="0.11199016304375" fullinertia="0.000149273764531 0.000220568333963 8.7783329166e-05 -3.06329398917e-20 -5.79807500967e-05 -4.74943652813e-20" />
+                    <geom name="link7_visual_1" type="mesh" mesh="link7_mesh_1" material="link7_material" pos="0 0 0" quat="1 0 0 0" />
+                    <site name="link7_frame" type="sphere" size="0.008" rgba="0.95 0.82 0.18 1" group="3" />
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <motor name="joint1_motor" joint="joint1" gear="1" />
+    <motor name="joint2_motor" joint="joint2" gear="1" />
+    <motor name="joint3_motor" joint="joint3" gear="1" />
+    <motor name="joint4_motor" joint="joint4" gear="1" />
+    <motor name="joint5_motor" joint="joint5" gear="1" />
+    <motor name="joint6_motor" joint="joint6" gear="1" />
+    <motor name="joint7_motor" joint="joint7" gear="1" />
+  </actuator>
+</mujoco>

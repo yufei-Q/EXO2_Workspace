@@ -14,19 +14,27 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'trajectory_file',
+            default_value=(
+                f'{identify_share}/results/seven_dof/excitation/'
+                'excitation_id.csv'),
             description='Absolute path to excitation_id.csv',
         ),
         DeclareLaunchArgument(
             'config_file',
             default_value=f'{identify_share}/config/experiment.yaml',
-            description='Experiment mapping and safety parameter YAML',
+            description='Experiment safety and processing parameter YAML',
+        ),
+        DeclareLaunchArgument(
+            'hardware_mapping_file',
+            default_value=f'{identify_share}/config/hardware_mapping.yaml',
+            description='Shared motor-to-joint calibration YAML',
         ),
         DeclareLaunchArgument('port', default_value='/dev/ttyACM0'),
         DeclareLaunchArgument('bridge_rate', default_value='500.0'),
         DeclareLaunchArgument(
-            'kp', default_value='[10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0]'),
+            'kp', default_value='[2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]'),
         DeclareLaunchArgument(
-            'kd', default_value='[5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0]'),
+            'kd', default_value='[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]'),
         DeclareLaunchArgument('auto_enable', default_value='false'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -48,6 +56,8 @@ def generate_launch_description():
                 LaunchConfiguration('config_file'),
                 {
                     'trajectory_file': LaunchConfiguration('trajectory_file'),
+                    'hardware_mapping_file': LaunchConfiguration(
+                        'hardware_mapping_file'),
                     'auto_enable_on_prepare': ParameterValue(
                         LaunchConfiguration('auto_enable'), value_type=bool),
                 },

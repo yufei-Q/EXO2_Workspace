@@ -1,0 +1,310 @@
+{
+  "input_data": "/home/yggroup/github_repo/EXO2_Workspace/ubuntu/ros_jazzy/exo_identify/results/seven_dof/simulation_data/dynamics_id_sim.csv",
+  "coordinate_requirement": "q/dq/ddq/tau must already be mapped to URDF joint1..jointN signs, units, zero offsets, and output-shaft quantities.",
+  "friction_columns_enabled": true,
+  "friction_model": "Fv*dq + Fc*tanh(dq/vs)",
+  "identified_base_parameters": [
+    {
+      "label": "joint7:Iyz",
+      "value": 3.237143534221927e-05
+    },
+    {
+      "label": "joint7:Ixy",
+      "value": 2.6153826602975892e-05
+    },
+    {
+      "label": "joint7:Ixz",
+      "value": -0.0003934365548010505
+    },
+    {
+      "label": "joint7:my",
+      "value": 8.435890284053482e-05
+    },
+    {
+      "label": "joint5:Iyz",
+      "value": 9.476384238140367e-05
+    },
+    {
+      "label": "joint7:mx",
+      "value": 0.006126662495717988
+    },
+    {
+      "label": "joint6:Ixz",
+      "value": -0.0023554440153821608
+    },
+    {
+      "label": "joint6:my",
+      "value": -0.00011411378714751892
+    },
+    {
+      "label": "joint5:mx",
+      "value": 0.02171526335061192
+    },
+    {
+      "label": "joint5:my",
+      "value": -0.00016491023787978872
+    },
+    {
+      "label": "joint6:mx",
+      "value": 0.024345536674932385
+    },
+    {
+      "label": "joint6:Iyz",
+      "value": 6.523140900465125e-05
+    },
+    {
+      "label": "joint6:Ixy",
+      "value": -0.00012251098316090465
+    },
+    {
+      "label": "joint5:Ixz",
+      "value": -0.0019494312714187683
+    },
+    {
+      "label": "joint4:mx",
+      "value": 0.11909340241024294
+    },
+    {
+      "label": "joint1:my",
+      "value": 0.0005307804641997375
+    },
+    {
+      "label": "joint4:my",
+      "value": -0.00019644548887087546
+    },
+    {
+      "label": "joint3:my",
+      "value": -0.0001313018437073738
+    },
+    {
+      "label": "joint7:Izz",
+      "value": 0.000671003696673728
+    },
+    {
+      "label": "joint3:mx",
+      "value": 0.2173273691896928
+    },
+    {
+      "label": "joint2:mx",
+      "value": 0.060954558344329536
+    },
+    {
+      "label": "joint7:Ixx",
+      "value": 0.002225746537762813
+    },
+    {
+      "label": "joint2:my",
+      "value": -0.0003746433192532949
+    },
+    {
+      "label": "joint4:Iyz",
+      "value": -0.00045706224980982533
+    },
+    {
+      "label": "joint4:Ixz",
+      "value": -0.006180981950745719
+    },
+    {
+      "label": "joint5:Ixy",
+      "value": 7.700271451238613e-05
+    },
+    {
+      "label": "joint7:Iyy",
+      "value": 0.002705070925971037
+    },
+    {
+      "label": "joint2:mz",
+      "value": -0.11103131457329933
+    },
+    {
+      "label": "joint4:Ixy",
+      "value": -0.0004037145017835234
+    },
+    {
+      "label": "joint3:Iyz",
+      "value": 4.098080262246248e-05
+    },
+    {
+      "label": "joint5:Izz",
+      "value": 0.0020511938824112662
+    },
+    {
+      "label": "joint5:Iyy",
+      "value": 0.0022533185945379747
+    },
+    {
+      "label": "joint3:Ixz",
+      "value": -0.0117957285704103
+    },
+    {
+      "label": "joint3:Ixy",
+      "value": 0.00021815845257999543
+    },
+    {
+      "label": "joint4:Izz",
+      "value": 0.02368436559397477
+    },
+    {
+      "label": "joint6:Ixx",
+      "value": -0.0003526503108558741
+    },
+    {
+      "label": "joint2:Ixy",
+      "value": -0.00018894132957087377
+    },
+    {
+      "label": "joint4:Ixx",
+      "value": -0.02355854573280976
+    },
+    {
+      "label": "joint3:Izz",
+      "value": 0.05831922220354725
+    },
+    {
+      "label": "joint2:Ixx",
+      "value": -0.045135050188024085
+    },
+    {
+      "label": "joint2:Ixz",
+      "value": 0.03241619772011854
+    },
+    {
+      "label": "joint3:Ixx",
+      "value": -0.05785309003178899
+    },
+    {
+      "label": "joint2:Iyz",
+      "value": 4.973045407801868e-05
+    },
+    {
+      "label": "joint2:Izz",
+      "value": 0.04480215736307087
+    },
+    {
+      "label": "joint1:Izz",
+      "value": 0.051434452384500756
+    }
+  ],
+  "identified_friction_parameters": [
+    {
+      "label": "joint1:Fv",
+      "value": 0.01773070812062691
+    },
+    {
+      "label": "joint2:Fv",
+      "value": 0.022234357085071113
+    },
+    {
+      "label": "joint3:Fv",
+      "value": 0.0215894573468086
+    },
+    {
+      "label": "joint4:Fv",
+      "value": 0.01801363264680745
+    },
+    {
+      "label": "joint5:Fv",
+      "value": 0.02138548691419411
+    },
+    {
+      "label": "joint6:Fv",
+      "value": 0.018580967780580854
+    },
+    {
+      "label": "joint7:Fv",
+      "value": 0.020355151579741163
+    },
+    {
+      "label": "joint1:Fc",
+      "value": 0.03329928771345327
+    },
+    {
+      "label": "joint2:Fc",
+      "value": 0.02983969007898048
+    },
+    {
+      "label": "joint3:Fc",
+      "value": 0.028993921060677802
+    },
+    {
+      "label": "joint4:Fc",
+      "value": 0.03285771642383717
+    },
+    {
+      "label": "joint5:Fc",
+      "value": 0.030055676473185987
+    },
+    {
+      "label": "joint6:Fc",
+      "value": 0.030450209638596105
+    },
+    {
+      "label": "joint7:Fc",
+      "value": 0.029164853716045554
+    }
+  ],
+  "regressor_shape": [
+    14007,
+    59
+  ],
+  "regressor_condition_number": 91.90596983429474,
+  "identification_metrics": {
+    "rmse_per_joint_Nm": [
+      0.02254355800111458,
+      0.019890031914461297,
+      0.02139118865459592,
+      0.02059027730881196,
+      0.017949116646220238,
+      0.01795082296373182,
+      0.020850218483646807
+    ],
+    "max_abs_error_per_joint_Nm": [
+      0.09870722519061192,
+      0.07417624250842678,
+      0.07674179346095003,
+      0.07915198789963229,
+      0.10571650489496438,
+      0.0636589519333324,
+      0.06798481372636864
+    ],
+    "normalized_rmse_per_joint": [
+      0.003849649570028104,
+      0.004019783221946852,
+      0.002827188096798242,
+      0.007216417385328581,
+      0.01939889941310161,
+      0.03020468124855425,
+      0.06949117353664562
+    ]
+  },
+  "validation_data": "/home/yggroup/github_repo/EXO2_Workspace/ubuntu/ros_jazzy/exo_identify/results/seven_dof/simulation_data/dynamics_validation_sim.csv",
+  "independent_validation_metrics": {
+    "rmse_per_joint_Nm": [
+      0.023034427590755545,
+      0.023050737446270703,
+      0.022110916205069265,
+      0.020413148326585064,
+      0.017984237916086762,
+      0.017714649312150665,
+      0.020742019519287634
+    ],
+    "max_abs_error_per_joint_Nm": [
+      0.0890458752047123,
+      0.07613146567157844,
+      0.07323001998260525,
+      0.09537603498094671,
+      0.07631627842740468,
+      0.06882842078525037,
+      0.07933354324083716
+    ],
+    "normalized_rmse_per_joint": [
+      0.0028589827715212665,
+      0.005111520007332066,
+      0.006146783762075138,
+      0.007345566193248861,
+      0.02583733894376582,
+      0.028370926026803772,
+      0.06193831548123491
+    ]
+  }
+}

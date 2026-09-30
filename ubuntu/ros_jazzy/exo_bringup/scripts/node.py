@@ -38,6 +38,8 @@ class DmMotorUsbNode(Node):
         self.declare_parameter('rate', 500.0)
         self.declare_parameter('kp', [0.0] * MOTOR_COUNT)
         self.declare_parameter('kd', [0.0] * MOTOR_COUNT)
+        self.declare_parameter('require_trajectory_ready', False)
+        self.declare_parameter('trajectory_ready_timeout', 0.2)
 
         port = self.get_parameter('port').value
         rate = float(self.get_parameter('rate').value)
@@ -47,6 +49,13 @@ class DmMotorUsbNode(Node):
         self.lock = threading.Lock()
         self.kp = self._read_gain('kp')
         self.kd = self._read_gain('kd')
+        self.require_trajectory_ready = bool(
+            self.get_parameter('require_trajectory_ready').value)
+        self.trajectory_ready_timeout = float(
+            self.get_parameter('trajectory_ready_timeout').value)
+        if (self.trajectory_ready_timeout <= 0.0
+                or not math.isfinite(self.trajectory_ready_timeout)):
+            raise ValueError('trajectory_ready_timeout must be finite and positive')
         self.parameter_callback = self.add_on_set_parameters_callback(
             self.gain_parameter_callback)
         self.serial = serial.Serial(
@@ -60,6 +69,8 @@ class DmMotorUsbNode(Node):
         self.parser = FeedbackStreamParser()
         self.sequence = 0
         self.enabled = False
+        self.trajectory_ready = False
+        self.trajectory_ready_time = None
         self.control_mode = MODE_MIT
         self.one_shot_flags = 0
         self.closed = False
@@ -80,6 +91,13 @@ class DmMotorUsbNode(Node):
             JointState, '/dm_motor_usb/command', self.command_callback, 1)
         self.create_subscription(
             Bool, '/dm_motor_usb/enable', self.enable_callback, 1)
+        if self.require_trajectory_ready:
+            self.create_subscription(
+                Bool,
+                '/dm_motor_usb/trajectory_ready',
+                self.trajectory_ready_callback,
+                1,
+            )
         self.create_subscription(
             UInt8, '/dm_motor_usb/control_mode',
             self.control_mode_callback, 1)
@@ -160,7 +178,32 @@ class DmMotorUsbNode(Node):
 
     def enable_callback(self, message):
         with self.lock:
-            self.enabled = bool(message.data)
+            requested = bool(message.data)
+            if requested and self.require_trajectory_ready:
+                if not self._trajectory_ready_locked():
+                    self.enabled = False
+                    self._log_throttled(
+                        'warning',
+                        'trajectory_not_ready',
+                        'Ignoring enable request until trajectory_experiment is prepared',
+                    )
+                    return
+            self.enabled = requested
+
+    def trajectory_ready_callback(self, message):
+        with self.lock:
+            self.trajectory_ready = bool(message.data)
+            self.trajectory_ready_time = time.monotonic()
+            if not self.trajectory_ready:
+                self.enabled = False
+
+    def _trajectory_ready_locked(self):
+        return (
+            self.trajectory_ready
+            and self.trajectory_ready_time is not None
+            and time.monotonic() - self.trajectory_ready_time
+            <= self.trajectory_ready_timeout
+        )
 
     def control_mode_callback(self, message):
         mode = int(message.data)
@@ -199,6 +242,14 @@ class DmMotorUsbNode(Node):
 
     def _make_command_frame(self):
         with self.lock:
+            if (self.enabled and self.require_trajectory_ready
+                    and not self._trajectory_ready_locked()):
+                self.enabled = False
+                self._log_throttled(
+                    'warning',
+                    'trajectory_ready_timeout',
+                    'Trajectory-ready heartbeat timed out; motors disabled',
+                )
             one_shot_flags = self.one_shot_flags
             flags = one_shot_flags
             if self.enabled:

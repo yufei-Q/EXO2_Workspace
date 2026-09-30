@@ -31,6 +31,14 @@ def generate_launch_description():
             description='Seven MIT damping gains, one per CAN ID',
         ),
         DeclareLaunchArgument(
+            'require_trajectory_ready',
+            default_value='false',
+            choices=['true', 'false'],
+            description=(
+                'Require trajectory_experiment preparation before enabling motors'
+            ),
+        ),
+        DeclareLaunchArgument(
             'use_gui',
             default_value='false',
             choices=['true', 'false'],
@@ -69,6 +77,9 @@ def generate_launch_description():
                     LaunchConfiguration('kp'), value_type=List[float]),
                 'kd': ParameterValue(
                     LaunchConfiguration('kd'), value_type=List[float]),
+                'require_trajectory_ready': ParameterValue(
+                    LaunchConfiguration('require_trajectory_ready'),
+                    value_type=bool),
             }],
         ),
         Node(

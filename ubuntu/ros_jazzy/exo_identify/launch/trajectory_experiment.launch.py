@@ -45,6 +45,7 @@ def generate_launch_description():
                 'kp': LaunchConfiguration('kp'),
                 'kd': LaunchConfiguration('kd'),
                 'use_gui': 'false',
+                'require_trajectory_ready': 'true',
             }.items(),
         ),
         Node(

@@ -9,7 +9,7 @@
   "gravity_formula_joint_lower": [-2.8, -2.8, -2.8, -2.8, -2.8, -2.8, -2.8],
   "gravity_formula_joint_upper": [2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8],
   "minimum_position_peak_to_peak": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0],
-  "target_position_peak_to_peak": [5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2],
+  "target_position_peak_to_peak": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0],
   "target_position_center": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
   "velocity_limit": [2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5],
   "acceleration_limit": [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0],
@@ -20,13 +20,18 @@
   "identification": {
     "include_friction": true
   },
+  "collision": {
+    "enabled": true,
+    "minimum_clearance_m": 0.005,
+    "abort_collection_on_violation": true
+  },
   "simulation": {
     "timestep": 0.002,
     "base_position": [0.0, 0.0, 0.2],
     "base_orientation_rpy": [1.5708, 0.0, 0.0],
-    "joint_damping": [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02],
+    "joint_damping": [0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4],
     "joint_armature": [0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002],
-    "joint_friction_loss": [0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03],
+    "joint_friction_loss": [0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15],
     "controller": {
       "position_kp": [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0],
       "velocity_kd": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],

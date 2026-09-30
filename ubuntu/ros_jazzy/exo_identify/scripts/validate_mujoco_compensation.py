@@ -9,12 +9,18 @@ import json
 from pathlib import Path
 
 from collect_mujoco_dynamics import joint_addresses, read_trajectory
+from collision import (
+    collision_model_fingerprint,
+    collision_settings,
+    CollisionChecker,
+    validate_collision_model,
+)
 from common import (
-    RESULTS_ROOT,
     build_estimator_model,
     default_urdf_path,
     load_base_set,
     load_config,
+    RESULTS_ROOT,
     torque_regressor,
 )
 from identify_parameters import metrics
@@ -64,7 +70,7 @@ def identified_compensation(
     return gravity, friction
 
 
-def mujoco_compensation_reference(mjcf_path, q, dq):
+def mujoco_compensation_reference(mjcf_path, q, dq, minimum_clearance_m):
     """Return MuJoCo gravity and passive-friction compensation terms."""
     try:
         import mujoco
@@ -73,6 +79,7 @@ def mujoco_compensation_reference(mjcf_path, q, dq):
             'MuJoCo Python is required; install requirements-mujoco.txt') from error
 
     model = mujoco.MjModel.from_xml_path(str(mjcf_path))
+    validate_collision_model(mujoco, model, minimum_clearance_m)
     data = mujoco.MjData(model)
     qpos_address, dof_address = joint_addresses(mujoco, model, q.shape[1])
     gravity = np.zeros_like(q)
@@ -91,8 +98,7 @@ def mujoco_compensation_reference(mjcf_path, q, dq):
         mujoco.mj_forward(model, data)
         friction[index] = (
             -data.qfrc_passive[dof_address]
-            -data.qfrc_constraint[dof_address]
-        )
+            - data.qfrc_constraint[dof_address])
     return gravity, friction
 
 
@@ -130,8 +136,21 @@ def validate_compensation(
     """Compare deployment-model compensation with MuJoCo references."""
     joint_count = len(config['excitation_joint_lower'])
     time_values, q, dq, _ = read_trajectory(trajectory_path, joint_count)
+    collision = collision_settings(config)
+    if not collision['enabled']:
+        raise ValueError(
+            'Collision checking must be enabled for MuJoCo compensation '
+            'validation')
+    collision_result = CollisionChecker(
+        mjcf_path, joint_count,
+        collision['minimum_clearance_m']).check_positions(q, time_values)
+    if not collision_result.collision_free:
+        raise RuntimeError(
+            'Compensation validation trajectory is not collision-free: '
+            f'{collision_result.describe()}')
     gravity_reference, friction_reference = mujoco_compensation_reference(
-        mjcf_path, q, dq)
+        mjcf_path, q, dq,
+        collision['minimum_clearance_m'])
     gravity_predicted, friction_predicted = identified_compensation(
         config, urdf_path, base_set_path, parameters_path, q, dq)
 
@@ -151,6 +170,13 @@ def validate_compensation(
         'friction_model': 'Fv*dq + Fc*tanh(dq/vs)',
         'validation_data': str(trajectory_path.resolve()),
         'validation_samples': int(q.shape[0]),
+        'collision_model': {
+            'mjcf': str(mjcf_path.resolve()),
+            'model_sha256': collision_model_fingerprint(mjcf_path),
+            'enabled': True,
+            'minimum_clearance_m': collision['minimum_clearance_m'],
+            'trajectory_result': collision_result.to_dict(),
+        },
         'gravity_metrics': metrics(gravity_reference, gravity_predicted),
         'friction_metrics': metrics(friction_reference, friction_predicted),
         'total_compensation_metrics': metrics(

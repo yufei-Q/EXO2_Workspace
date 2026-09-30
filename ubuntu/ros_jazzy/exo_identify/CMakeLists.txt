@@ -14,18 +14,25 @@ install(
     scripts/collect_mujoco_dynamics.py
     scripts/validate_mujoco_compensation.py
     scripts/mujoco_dynamics_pipeline.py
+    scripts/mujoco_compensation_sim.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(
   FILES
     scripts/common.py
+    scripts/collision.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(
   DIRECTORY config launch urdf results
   DESTINATION share/${PROJECT_NAME}
+  PATTERN "__pycache__" EXCLUDE
+  PATTERN "*.pyc" EXCLUDE
+  PATTERN "live_compensation.csv" EXCLUDE
+  PATTERN "compensation_simulation" EXCLUDE
+  PATTERN "hardware_experiments" EXCLUDE
 )
 
 install(
@@ -52,5 +59,14 @@ install(
     neural_network/README.md
   DESTINATION share/${PROJECT_NAME}/neural_network
 )
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(
+    test_release_safety
+    test/test_release_safety.py
+    TIMEOUT 60
+  )
+endif()
 
 ament_package()

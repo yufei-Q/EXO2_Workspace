@@ -17,6 +17,10 @@ __pycache__/
 # MuJoCo runtime log
 **/MUJOCO_LOG.TXT
 
+# Runtime experiment logs (generated locally, not reproducible artifacts)
+/ubuntu/ros_jazzy/exo_identify/results/seven_dof/compensation_simulation/
+/ubuntu/ros_jazzy/exo_identify/results/seven_dof/hardware_experiments/
+
 # ROS 1 and ROS 2 build outputs
 **/build/
 **/devel/

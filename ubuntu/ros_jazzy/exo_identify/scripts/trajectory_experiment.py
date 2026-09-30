@@ -8,11 +8,11 @@ import json
 from pathlib import Path
 
 from common import (
-    RESULTS_ROOT,
     default_hardware_mapping_path,
     load_hardware_mapping,
     process_signals,
     ProcessingConfig,
+    RESULTS_ROOT,
     save_processed,
 )
 import numpy as np
@@ -65,6 +65,8 @@ class TrajectoryExperimentNode(Node):
             JointState, '/dm_motor_usb/command', 1)
         self.enable_pub = self.create_publisher(
             Bool, '/dm_motor_usb/enable', 1)
+        self.trajectory_ready_pub = self.create_publisher(
+            Bool, '/dm_motor_usb/trajectory_ready', 1)
         self.create_subscription(
             JointState, '/dm_motor_usb/feedback', self.feedback_callback, 20)
         self.create_service(
@@ -77,6 +79,7 @@ class TrajectoryExperimentNode(Node):
             Trigger, '/exo_identify/emergency_stop',
             self.emergency_stop_callback)
         self.timer = self.create_timer(1.0 / self.command_rate, self.timer_callback)
+        self._publish_trajectory_ready(False)
 
         self.get_logger().info(
             f'Loaded {self.trajectory_file} ({self.trajectory["t"][-1]:.2f} s); '
@@ -307,6 +310,11 @@ class TrajectoryExperimentNode(Node):
         message.data = bool(enabled)
         self.enable_pub.publish(message)
 
+    def _publish_trajectory_ready(self, ready):
+        message = Bool()
+        message.data = bool(ready)
+        self.trajectory_ready_pub.publish(message)
+
     def _command_violation(self, q, dq):
         position = np.asarray(q, dtype=float).reshape(-1)
         velocity = np.asarray(dq, dtype=float).reshape(-1)
@@ -328,6 +336,7 @@ class TrajectoryExperimentNode(Node):
 
     def _emergency_disable(self, reason):
         self._publish_enable(False)
+        self._publish_trajectory_ready(False)
         self.state = 'idle'
         self.segment_coefficients = None
         self.segment_start = None
@@ -381,6 +390,7 @@ class TrajectoryExperimentNode(Node):
             response.success = False
             response.message = 'current pose cannot be held within safety limits'
             return response
+        self._publish_trajectory_ready(True)
         if self.auto_enable:
             self._publish_enable(True)
         response.success = True
@@ -413,6 +423,7 @@ class TrajectoryExperimentNode(Node):
         self.segment_start = self._now() + self.hold_before_start
         self.records = []
         self.state = 'transition_wait'
+        self._publish_trajectory_ready(True)
         response.success = True
         response.message = 'smooth transition and excitation scheduled'
         return response
@@ -420,6 +431,7 @@ class TrajectoryExperimentNode(Node):
     def stop_callback(self, _request, response):
         if self.state in ('idle', 'ready', 'hold'):
             self._publish_enable(False)
+            self._publish_trajectory_ready(False)
             self.state = 'idle'
             response.success = True
             response.message = 'motors disabled'
@@ -497,6 +509,10 @@ class TrajectoryExperimentNode(Node):
 
     def timer_callback(self):
         now = self._now()
+        self._publish_trajectory_ready(
+            self.state in (
+                'ready', 'transition_wait', 'transition',
+                'excitation', 'stopping', 'hold'))
         if self.state in ('idle',):
             return
         if not self._feedback_is_fresh():
@@ -549,7 +565,10 @@ class TrajectoryExperimentNode(Node):
             if self.disable_deadline is not None and now >= self.disable_deadline:
                 if self.disable_on_finish:
                     self._publish_enable(False)
-                self.state = 'idle'
+                    self._publish_trajectory_ready(False)
+                    self.state = 'idle'
+                else:
+                    self.state = 'ready'
                 self.get_logger().info('Experiment finished')
 
     def _begin_stop(self):
@@ -662,6 +681,7 @@ class TrajectoryExperimentNode(Node):
     def destroy_node(self):
         if rclpy.ok():
             self._publish_enable(False)
+            self._publish_trajectory_ready(False)
         return super().destroy_node()
 
 
